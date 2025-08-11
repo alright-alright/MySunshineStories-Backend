@@ -116,6 +116,36 @@ async def oauth_login(
     """
     Login with OAuth token (Google or Apple)
     """
+    # Demo mode for development
+    if request.token == "demo_token":
+        # Create or get demo user
+        from app.models.user import User
+        demo_email = "demo@mysunshinestory.ai"
+        user = db.query(User).filter(User.email == demo_email).first()
+        
+        if not user:
+            user = User(
+                email=demo_email,
+                username="demo_user",
+                full_name="Demo User",
+                is_verified=True,
+                is_active=True,
+                oauth_provider=request.provider,
+                oauth_provider_id="demo_id"
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        
+        # Generate tokens
+        tokens = create_tokens(user.id, user.email)
+        
+        return LoginResponse(
+            access_token=tokens["access_token"],
+            refresh_token=tokens["refresh_token"],
+            user=UserSchema.model_validate(user)
+        )
+    
     # Verify the OAuth token
     if request.provider.lower() == "google":
         user_data = await OAuthService.verify_google_token(request.token)
