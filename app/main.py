@@ -18,15 +18,6 @@ app = FastAPI(
 
 # CORS Configuration - CRITICAL: Must be added BEFORE routes
 origins = [
-    # Production domains (MOST IMPORTANT)
-    "https://my-sunshine-stories-frontend-ojb3dgk92-aerware-ai.vercel.app",
-    "https://mysunshinestories.com",
-    "https://www.mysunshinestories.com",
-    
-    # Additional Vercel deployments
-    "https://my-sunshine-stories-frontend.vercel.app",
-    "https://mysunshinestories.vercel.app",
-    
     # Local development
     "http://localhost:3000",
     "http://localhost:5173",
@@ -35,12 +26,23 @@ origins = [
     "http://127.0.0.1:5173",
     "http://127.0.0.1:4173",
     
-    # Legacy domains
+    # Railway backend (self-reference for testing)
+    "https://luciantales-production.up.railway.app",
+    
+    # Production domains - PRIMARY
+    "https://mysunshinestories.com",
+    "https://www.mysunshinestories.com",
+    
+    # Vercel deployments
+    "https://my-sunshine-stories-frontend-ojb3dgk92-aerware-ai.vercel.app",
+    "https://my-sunshine-stories-frontend.vercel.app",
+    "https://mysunshinestories.vercel.app",
+    
+    # Legacy domains (if still in use)
     "https://mysunshinestory.ai",
     "https://www.mysunshinestory.ai",
     
-    # Railway deployments
-    "https://luciantales-production.up.railway.app",
+    # Additional Railway deployments
     "https://steadfast-inspiration-production.up.railway.app",
 ]
 
