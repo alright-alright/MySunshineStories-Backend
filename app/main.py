@@ -1,12 +1,11 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import RedirectResponse, Response
+from fastapi.responses import RedirectResponse, Response, JSONResponse
 import os
 
 from app.api.routes import story, health, auth, sunshine, subscription, story_v2, story_enhanced
 from app.core.database import engine, Base
-from app.core.cors import get_allowed_origins, should_allow_origin, CORS_CONFIG
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -17,46 +16,55 @@ app = FastAPI(
     version="2.0.0"
 )
 
-# Get allowed origins from configuration
-allowed_origins = get_allowed_origins()
+# CORS Configuration - Simple and working
+origins = [
+    # Local development
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:4173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:4173",
+    
+    # Production domains
+    "https://mysunshinestory.ai",
+    "https://www.mysunshinestory.ai",
+    "https://mysunshinestories.com",
+    "https://www.mysunshinestories.com",
+    
+    # Vercel deployments
+    "https://my-sunshine-stories-frontend.vercel.app",
+    "https://my-sunshine-stories-frontend-ojb3dgk92-aerware-ai.vercel.app",
+    
+    # Railway deployments
+    "https://luciantales-production.up.railway.app",
+    "https://steadfast-inspiration-production.up.railway.app"
+]
 
-# Custom CORS middleware to handle dynamic origins (Vercel previews, etc)
-@app.middleware("http")
-async def custom_cors_middleware(request: Request, call_next):
-    """
-    Custom CORS middleware to handle dynamic origins like Vercel preview deployments
-    """
-    origin = request.headers.get("origin")
-    
-    # Handle preflight requests
-    if request.method == "OPTIONS":
-        response = Response()
-        if should_allow_origin(origin, allowed_origins):
-            response.headers["Access-Control-Allow-Origin"] = origin
-            response.headers["Access-Control-Allow-Credentials"] = "true"
-            response.headers["Access-Control-Allow-Methods"] = ", ".join(CORS_CONFIG["allow_methods"])
-            response.headers["Access-Control-Allow-Headers"] = "*"
-            response.headers["Access-Control-Max-Age"] = str(CORS_CONFIG["max_age"])
-        return response
-    
-    # Process the request
-    response = await call_next(request)
-    
-    # Add CORS headers if origin is allowed
-    if should_allow_origin(origin, allowed_origins):
-        response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-        response.headers["Access-Control-Allow-Methods"] = ", ".join(CORS_CONFIG["allow_methods"])
-        response.headers["Access-Control-Allow-Headers"] = "*"
-        response.headers["Access-Control-Expose-Headers"] = "*"
-    
-    return response
+# Add any additional origins from environment
+env_origins = os.getenv("ALLOWED_ORIGINS", "")
+if env_origins:
+    for origin in env_origins.split(","):
+        origin = origin.strip()
+        if origin and origin not in origins:
+            origins.append(origin)
 
-# Standard CORS middleware as fallback
+# Configure CORS - MUST be before any routes
+# Using allow_origin_regex to support Vercel preview deployments
+import re
+
+# Create regex pattern for Vercel previews
+vercel_preview_pattern = r"https://my-sunshine-stories-.*\.vercel\.app"
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
-    **CORS_CONFIG
+    allow_origins=origins,
+    allow_origin_regex=vercel_preview_pattern,  # This allows all Vercel preview deployments
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600,
 )
 
 # Serve static files (for generated PDFs in development)
@@ -85,22 +93,30 @@ async def root():
 async def cors_test(request: Request):
     """Test CORS configuration"""
     origin = request.headers.get("origin", "No origin header")
-    allowed = should_allow_origin(origin, allowed_origins)
+    allowed = origin in origins
     
-    return {
-        "origin": origin,
-        "allowed": allowed,
-        "configured_origins": allowed_origins[:5] + ["..."],  # Show first 5 for security
-        "total_origins": len(allowed_origins),
-        "cors_enabled": True,
-        "message": "CORS is properly configured" if allowed else "Origin not in allowed list"
-    }
+    return JSONResponse(
+        content={
+            "origin": origin,
+            "allowed": allowed,
+            "configured_origins": origins[:5] + ["..."] if len(origins) > 5 else origins,
+            "total_origins": len(origins),
+            "cors_enabled": True,
+            "message": "CORS is properly configured" if allowed else "Origin not in allowed list"
+        }
+    )
 
-# OPTIONS handler for OAuth endpoints
+# OPTIONS handler for OAuth endpoints - explicit handler
 @app.options("/api/v1/auth/oauth/exchange")
 async def oauth_exchange_options():
     """Handle preflight for OAuth exchange endpoint"""
-    return {"message": "OK"}
+    return JSONResponse(content={"message": "OK"})
+
+# Additional OPTIONS handler for all auth routes
+@app.options("/api/v1/auth/{full_path:path}")
+async def auth_options_handler():
+    """Handle preflight for all auth endpoints"""
+    return JSONResponse(content={"message": "OK"})
 
 # Include routers
 app.include_router(health.router, prefix="/api/v1")
