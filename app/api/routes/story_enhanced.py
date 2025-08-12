@@ -56,24 +56,46 @@ async def generate_story_with_photos(
     test_user_id = "test-user-id-12345"
     print(f"TEMP: Generating story at original URL for test user: {test_user_id}")
     
-    # Mock subscription object
+    # Mock subscription object with all authorization attributes
     class MockSubscription:
         def __init__(self):
+            # Plan details
             self.plan_type = "premium"
-            self.stories_limit = 999
+            self.tier = "premium"
+            
+            # Status flags - all active/valid
             self.is_active = True
-            self.status = "active"  # Required by story generation
-            self.current_period_end = datetime.now(timezone.utc) + timedelta(days=30)  # 30 days from now
-            self.current_period_start = datetime.now(timezone.utc) - timedelta(days=1)  # Started yesterday
-            self.tier = "premium"  # Premium tier for full features
+            self.status = "active"  # Could also be "paid"
+            self.is_valid = True  # Explicitly valid
+            
+            # Usage tracking - plenty of capacity
+            self.stories_limit = 999
+            self.stories_used = 0  # No stories used yet
+            self.stories_remaining = 999  # Full capacity
+            
+            # Period dates
+            self.current_period_start = datetime.now(timezone.utc) - timedelta(days=1)
+            self.current_period_end = datetime.now(timezone.utc) + timedelta(days=30)
+            
+            # Additional flags that might be checked
+            self.can_generate_stories = True
+            self.has_payment_method = True
+            self.trial_expired = False
     
-    # Mock user object with subscription
+    # Mock user object with full authorization
     class MockUser:
         def __init__(self):
             self.id = test_user_id
             self.email = "test@example.com"
             self.full_name = "Test User"
             self.subscription = MockSubscription()
+            
+            # Additional user attributes that might be checked
+            self.is_active = True
+            self.is_verified = True
+            self.is_admin = False  # Regular user
+            self.created_at = datetime.now(timezone.utc) - timedelta(days=30)
+            self.last_login = datetime.now(timezone.utc)
     
     mock_user = MockUser()
     
@@ -293,24 +315,46 @@ async def generate_story_with_photos_test(
     test_user_id = "test-user-id-12345"
     print(f"TEMP: Generating story for test user: {test_user_id}")
     
-    # Mock subscription object
+    # Mock subscription object with all authorization attributes
     class MockSubscription:
         def __init__(self):
+            # Plan details
             self.plan_type = "premium"
-            self.stories_limit = 999
+            self.tier = "premium"
+            
+            # Status flags - all active/valid
             self.is_active = True
-            self.status = "active"  # Required by story generation
-            self.current_period_end = datetime.now(timezone.utc) + timedelta(days=30)  # 30 days from now
-            self.current_period_start = datetime.now(timezone.utc) - timedelta(days=1)  # Started yesterday
-            self.tier = "premium"  # Premium tier for full features
+            self.status = "active"  # Could also be "paid"
+            self.is_valid = True  # Explicitly valid
+            
+            # Usage tracking - plenty of capacity
+            self.stories_limit = 999
+            self.stories_used = 0  # No stories used yet
+            self.stories_remaining = 999  # Full capacity
+            
+            # Period dates
+            self.current_period_start = datetime.now(timezone.utc) - timedelta(days=1)
+            self.current_period_end = datetime.now(timezone.utc) + timedelta(days=30)
+            
+            # Additional flags that might be checked
+            self.can_generate_stories = True
+            self.has_payment_method = True
+            self.trial_expired = False
     
-    # Mock user object with subscription
+    # Mock user object with full authorization
     class MockUser:
         def __init__(self):
             self.id = test_user_id
             self.email = "test@example.com"
             self.full_name = "Test User"
             self.subscription = MockSubscription()
+            
+            # Additional user attributes that might be checked
+            self.is_active = True
+            self.is_verified = True
+            self.is_admin = False  # Regular user
+            self.created_at = datetime.now(timezone.utc) - timedelta(days=30)
+            self.last_login = datetime.now(timezone.utc)
     
     mock_user = MockUser()
     
