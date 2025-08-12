@@ -2,7 +2,7 @@
 Sunshine profile API routes with comprehensive CRUD operations
 """
 from typing import List, Optional
-from fastapi import APIRouter, HTTPException, status, Depends, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, status, Depends, UploadFile, File, Form, Request
 from fastapi.responses import JSONResponse
 
 from app.core.dependencies import CurrentUser, DatabaseSession
@@ -21,37 +21,68 @@ router = APIRouter()
 
 # ============== Sunshine Profile Endpoints ==============
 
-@router.post("/", response_model=SunshineResponse)
+@router.post("/test")
+async def test_post_endpoint():
+    """Simple test endpoint to verify POST works"""
+    return {"message": "POST endpoint is working", "status": "success"}
+
+
+@router.post("/", response_model=SunshineResponse, status_code=status.HTTP_201_CREATED)
 async def create_sunshine(
-    # Dependencies first
+    request: Request,
     current_user: CurrentUser,
-    db: DatabaseSession,
-    # Form data fields
-    name: str = Form(...),
-    age: str = Form(...),  # Will convert to birthdate
-    gender: str = Form(...),
-    fears_or_challenges: Optional[str] = Form(None),
-    favorite_things: Optional[str] = Form(None),
-    interests: Optional[str] = Form(None),  # JSON string
-    personality_traits: Optional[str] = Form(None),  # JSON string
-    family_members: Optional[str] = Form(None),  # JSON string
-    comfort_items: Optional[str] = Form(None),  # JSON string
-    photos: Optional[List[UploadFile]] = File(None)
+    db: DatabaseSession
 ):
     """Create a new Sunshine profile with optional photos"""
     try:
         import json
         from datetime import date, timedelta
         
+        # Get form data
+        form = await request.form()
+        
+        # Extract fields with defaults
+        name = form.get("name", "")
+        age = form.get("age", "0")
+        gender = form.get("gender", "prefer_not_to_say")
+        fears_or_challenges = form.get("fears_or_challenges", "")
+        favorite_things = form.get("favorite_things", "")
+        interests = form.get("interests", "[]")
+        personality_traits = form.get("personality_traits", "[]")
+        family_members = form.get("family_members", "[]")
+        comfort_items = form.get("comfort_items", "[]")
+        
+        # Get uploaded files
+        photos = form.getlist("photos") if hasattr(form, 'getlist') else []
+        
+        # Validate required fields
+        if not name or not age:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Name and age are required"
+            )
+        
         # Calculate birthdate from age
-        age_int = int(age)
+        try:
+            age_int = int(age)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Age must be a number"
+            )
         birthdate = date.today() - timedelta(days=age_int * 365)
         
         # Parse JSON strings
-        interests_list = json.loads(interests) if interests else []
-        traits_list = json.loads(personality_traits) if personality_traits else []
-        family_list = json.loads(family_members) if family_members else []
-        comfort_list = json.loads(comfort_items) if comfort_items else []
+        try:
+            interests_list = json.loads(interests) if interests and interests != "[]" else []
+            traits_list = json.loads(personality_traits) if personality_traits and personality_traits != "[]" else []
+            family_list = json.loads(family_members) if family_members and family_members != "[]" else []
+            comfort_list = json.loads(comfort_items) if comfort_items and comfort_items != "[]" else []
+        except json.JSONDecodeError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid JSON in form data: {str(e)}"
+            )
         
         # Map frontend fields to backend schema
         sunshine_data = SunshineCreate(

@@ -171,7 +171,18 @@ app.include_router(subscription.router, prefix="/api/v1/subscription", tags=["su
 app.include_router(story_v2.router, prefix="/api/v2/stories", tags=["stories-v2"])
 app.include_router(story_enhanced.router, prefix="/api/v3/stories", tags=["stories-enhanced"])
 
+# Debug endpoint to test POST directly
+@app.post("/api/v1/sunshines/debug")
+async def debug_sunshine_post():
+    """Debug POST endpoint to verify routing works"""
+    return JSONResponse(content={"message": "Direct POST handler works", "endpoint": "/api/v1/sunshines/debug"}, status_code=200)
+
 # Explicit OPTIONS handlers for critical endpoints
+@app.options("/api/v1/sunshines")
+async def handle_sunshines_preflight():
+    """Explicit OPTIONS handler for sunshines endpoint"""
+    return JSONResponse(content={"status": "ok", "methods": ["GET", "POST", "OPTIONS"]}, status_code=200)
+
 @app.options("/api/v1/auth/oauth/exchange")
 async def handle_oauth_exchange_preflight():
     """Explicit OPTIONS handler for OAuth exchange endpoint"""
