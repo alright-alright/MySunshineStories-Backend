@@ -65,6 +65,7 @@ async def generate_story_with_photos(
             self.status = "active"  # Required by story generation
             self.current_period_end = datetime.now(timezone.utc) + timedelta(days=30)  # 30 days from now
             self.current_period_start = datetime.now(timezone.utc) - timedelta(days=1)  # Started yesterday
+            self.tier = "premium"  # Premium tier for full features
     
     # Mock user object with subscription
     class MockUser:
@@ -301,6 +302,7 @@ async def generate_story_with_photos_test(
             self.status = "active"  # Required by story generation
             self.current_period_end = datetime.now(timezone.utc) + timedelta(days=30)  # 30 days from now
             self.current_period_start = datetime.now(timezone.utc) - timedelta(days=1)  # Started yesterday
+            self.tier = "premium"  # Premium tier for full features
     
     # Mock user object with subscription
     class MockUser:
