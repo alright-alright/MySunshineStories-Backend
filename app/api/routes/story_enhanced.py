@@ -99,6 +99,25 @@ async def generate_story_with_photos(
     
     mock_user = MockUser()
     
+    # Debug logging to trace authorization
+    print(f"🔍 DEBUG: Starting story generation with mock user...")
+    print(f"🔍 User ID: {mock_user.id}")
+    print(f"🔍 User email: {mock_user.email}")
+    print(f"🔍 User is_active: {getattr(mock_user, 'is_active', 'N/A')}")
+    print(f"🔍 User is_verified: {getattr(mock_user, 'is_verified', 'N/A')}")
+    
+    print(f"🔍 DEBUG: Checking subscription details...")
+    print(f"🔍 Subscription status: {mock_user.subscription.status}")
+    print(f"🔍 Subscription tier: {mock_user.subscription.tier}")
+    print(f"🔍 Subscription is_active: {mock_user.subscription.is_active}")
+    print(f"🔍 Subscription is_valid: {getattr(mock_user.subscription, 'is_valid', 'N/A')}")
+    print(f"🔍 Stories limit: {mock_user.subscription.stories_limit}")
+    print(f"🔍 Stories used: {getattr(mock_user.subscription, 'stories_used', 'N/A')}")
+    print(f"🔍 Stories remaining: {getattr(mock_user.subscription, 'stories_remaining', 'N/A')}")
+    print(f"🔍 Can generate stories: {getattr(mock_user.subscription, 'can_generate_stories', 'N/A')}")
+    
+    print(f"🔍 DEBUG: Calling story generation implementation...")
+    
     # Call the implementation function with mock user
     return await generate_story_with_photos_impl(
         current_user=mock_user,
@@ -274,6 +293,9 @@ async def generate_story_with_photos_impl(
     except ValueError as e:
         # This is a subscription/usage limit error
         error_msg = str(e)
+        print(f"🔴 DEBUG: ValueError caught in story generation: {error_msg}")
+        print(f"🔴 DEBUG: This is causing the 403 Forbidden error!")
+        
         if "limit" in error_msg.lower() or "payment" in error_msg.lower():
             raise HTTPException(
                 status_code=status.HTTP_402_PAYMENT_REQUIRED,
@@ -357,6 +379,25 @@ async def generate_story_with_photos_test(
             self.last_login = datetime.now(timezone.utc)
     
     mock_user = MockUser()
+    
+    # Debug logging to trace authorization
+    print(f"🔍 DEBUG: Starting story generation with mock user...")
+    print(f"🔍 User ID: {mock_user.id}")
+    print(f"🔍 User email: {mock_user.email}")
+    print(f"🔍 User is_active: {getattr(mock_user, 'is_active', 'N/A')}")
+    print(f"🔍 User is_verified: {getattr(mock_user, 'is_verified', 'N/A')}")
+    
+    print(f"🔍 DEBUG: Checking subscription details...")
+    print(f"🔍 Subscription status: {mock_user.subscription.status}")
+    print(f"🔍 Subscription tier: {mock_user.subscription.tier}")
+    print(f"🔍 Subscription is_active: {mock_user.subscription.is_active}")
+    print(f"🔍 Subscription is_valid: {getattr(mock_user.subscription, 'is_valid', 'N/A')}")
+    print(f"🔍 Stories limit: {mock_user.subscription.stories_limit}")
+    print(f"🔍 Stories used: {getattr(mock_user.subscription, 'stories_used', 'N/A')}")
+    print(f"🔍 Stories remaining: {getattr(mock_user.subscription, 'stories_remaining', 'N/A')}")
+    print(f"🔍 Can generate stories: {getattr(mock_user.subscription, 'can_generate_stories', 'N/A')}")
+    
+    print(f"🔍 DEBUG: Calling story generation implementation...")
     
     # Call the implementation function with mock user
     return await generate_story_with_photos_impl(
