@@ -27,166 +27,35 @@ async def test_post_endpoint():
     return {"message": "POST endpoint is working", "status": "success"}
 
 
-@router.post("/", response_model=SunshineResponse, status_code=status.HTTP_201_CREATED)
-async def create_sunshine(
-    request: Request,
+@router.post("/create-json", response_model=SunshineResponse)
+async def create_sunshine_json_endpoint(
+    sunshine_data: SunshineCreate,
     current_user: CurrentUser,
     db: DatabaseSession
 ):
-    """Create a new Sunshine profile with optional photos"""
+    """Create sunshine with JSON data"""
     try:
-        import json
-        from datetime import date, timedelta
-        
-        # Get form data
-        form = await request.form()
-        
-        # Extract fields with defaults
-        name = form.get("name", "")
-        age = form.get("age", "0")
-        gender = form.get("gender", "prefer_not_to_say")
-        fears_or_challenges = form.get("fears_or_challenges", "")
-        favorite_things = form.get("favorite_things", "")
-        interests = form.get("interests", "[]")
-        personality_traits = form.get("personality_traits", "[]")
-        family_members = form.get("family_members", "[]")
-        comfort_items = form.get("comfort_items", "[]")
-        
-        # Get uploaded files
-        photos = form.getlist("photos") if hasattr(form, 'getlist') else []
-        
-        # Validate required fields
-        if not name or not age:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Name and age are required"
-            )
-        
-        # Calculate birthdate from age
-        try:
-            age_int = int(age)
-        except ValueError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Age must be a number"
-            )
-        birthdate = date.today() - timedelta(days=age_int * 365)
-        
-        # Parse JSON strings
-        try:
-            interests_list = json.loads(interests) if interests and interests != "[]" else []
-            traits_list = json.loads(personality_traits) if personality_traits and personality_traits != "[]" else []
-            family_list = json.loads(family_members) if family_members and family_members != "[]" else []
-            comfort_list = json.loads(comfort_items) if comfort_items and comfort_items != "[]" else []
-        except json.JSONDecodeError as e:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid JSON in form data: {str(e)}"
-            )
-        
-        # Map frontend fields to backend schema
-        sunshine_data = SunshineCreate(
-            name=name,
-            birthdate=birthdate,
-            gender=gender if gender in ["male", "female", "non_binary"] else "prefer_not_to_say",
-            favorite_activity=", ".join(interests_list) if interests_list else None,
-            favorite_food=favorite_things,  # Map favorite_things to favorite_food
-            fears=[item.strip() for item in fears_or_challenges.split(",") if item.strip()] if fears_or_challenges else [],
-            personality_traits=[
-                PersonalityTraitCreate(trait=trait, strength=3) 
-                for trait in traits_list if trait
-            ]
-        )
-        
-        # Create the sunshine profile
         sunshine = sunshine_service.create_sunshine(
             db=db,
             user_id=current_user.id,
             sunshine_data=sunshine_data
         )
-        
-        # Add family members
-        for member in family_list:
-            if member.get('name'):
-                member_data = FamilyMemberCreate(
-                    name=member['name'],
-                    relationship=member.get('relation_type', 'other'),
-                    age=int(member['age']) if member.get('age') else None
-                )
-                sunshine_service.add_family_member(
-                    db=db,
-                    sunshine_id=sunshine.id,
-                    user_id=current_user.id,
-                    member_data=member_data
-                )
-        
-        # Add comfort items
-        for item in comfort_list:
-            if item.get('name'):
-                item_data = ComfortItemCreate(
-                    name=item['name'],
-                    item_type='other',  # Default type since frontend doesn't specify
-                    description=item.get('description', '')
-                )
-                sunshine_service.add_comfort_item(
-                    db=db,
-                    sunshine_id=sunshine.id,
-                    user_id=current_user.id,
-                    item_data=item_data
-                )
-        
-        # Upload photos if provided
-        if photos:
-            for idx, photo in enumerate(photos):
-                if photo and photo.filename:
-                    try:
-                        # For now, skip actual upload if service is not configured
-                        # Just log that we would upload
-                        print(f"Would upload photo: {photo.filename}")
-                        
-                        # Skip the actual upload for now to avoid dependency issues
-                        # Uncomment when file_upload_service is properly configured:
-                        
-                        # photo_url, thumbnail_url = await file_upload_service.upload_profile_photo(
-                        #     file=photo,
-                        #     user_id=current_user.id,
-                        #     sunshine_id=sunshine.id
-                        # )
-                        # 
-                        # photo_data = PhotoCreate(
-                        #     photo_type="profile" if idx == 0 else "gallery",
-                        #     is_primary=(idx == 0)
-                        # )
-                        # 
-                        # sunshine_service.add_photo(
-                        #     db=db,
-                        #     sunshine_id=sunshine.id,
-                        #     user_id=current_user.id,
-                        #     photo_url=photo_url,
-                        #     thumbnail_url=thumbnail_url,
-                        #     photo_data=photo_data
-                        # )
-                    except Exception as photo_error:
-                        print(f"Failed to process photo: {photo_error}")
-                        # Continue with other photos
-        
-        # Refresh to get all related data
-        db.refresh(sunshine)
         return SunshineResponse.from_orm_model(sunshine)
-        
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
-    except Exception as e:
-        import traceback
-        print(f"Error creating sunshine profile: {e}")
-        print(traceback.format_exc())
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create profile: {str(e)}"
-        )
+
+
+@router.post("/", response_model=dict)
+async def create_sunshine(
+    current_user: CurrentUser,
+    db: DatabaseSession
+):
+    """Create a new Sunshine profile - basic version"""
+    # Return a simple response for now to verify POST works
+    return {"message": "POST /api/v1/sunshines is working", "user_id": current_user.id}
 
 
 @router.post("/json", response_model=SunshineResponse)

@@ -162,6 +162,21 @@ async def health_check():
 # Import and include routers AFTER CORS middleware
 from app.api.routes import auth, sunshine, story, subscription, story_v2, story_enhanced, health
 
+# Debug: Print routes before including
+print("=" * 60)
+print("DEBUGGING SUNSHINE ROUTER")
+print("=" * 60)
+
+# Check if sunshine router has routes
+if hasattr(sunshine, 'router'):
+    print(f"Sunshine router exists: {sunshine.router}")
+    print(f"Sunshine router routes: {sunshine.router.routes}")
+    for route in sunshine.router.routes:
+        if hasattr(route, 'methods') and hasattr(route, 'path'):
+            print(f"  Route: {route.methods} {route.path}")
+else:
+    print("ERROR: Sunshine router not found!")
+
 # Include all routers
 app.include_router(health.router, prefix="/api/v1", tags=["health"])
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["authentication"])
@@ -170,6 +185,15 @@ app.include_router(story.router, prefix="/api/v1", tags=["stories"])
 app.include_router(subscription.router, prefix="/api/v1/subscription", tags=["subscription"])
 app.include_router(story_v2.router, prefix="/api/v2/stories", tags=["stories-v2"])
 app.include_router(story_enhanced.router, prefix="/api/v3/stories", tags=["stories-enhanced"])
+
+# Debug: Print all registered routes
+print("\n" + "=" * 60)
+print("ALL REGISTERED ROUTES:")
+print("=" * 60)
+for route in app.routes:
+    if hasattr(route, 'methods') and hasattr(route, 'path'):
+        if "/sunshines" in str(route.path):
+            print(f"  {route.methods} {route.path}")
 
 # Debug endpoint to test POST directly
 @app.post("/api/v1/sunshines/debug")
