@@ -2,7 +2,7 @@
 Fixed Sunshine profile API routes
 """
 from typing import List, Optional
-from fastapi import APIRouter, HTTPException, status, Depends, Request
+from fastapi import APIRouter, HTTPException, status, Depends, Request, Form, File, UploadFile
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 import json
@@ -28,6 +28,20 @@ router = APIRouter()
 async def test_post_endpoint():
     """Simple test endpoint to verify POST works"""
     return {"message": "Test POST endpoint is working", "status": "success"}
+
+@router.post("/test-form")
+async def test_form_endpoint(
+    name: str = Form(...),
+    age: str = Form(...)
+):
+    """Test endpoint with Form parameters"""
+    return {
+        "message": "Form POST endpoint is working",
+        "received": {
+            "name": name,
+            "age": age
+        }
+    }
 
 @router.get("/test")
 async def test_get_endpoint():
@@ -77,35 +91,21 @@ async def get_my_sunshines(
 
 @router.post("/")
 async def create_sunshine(
-    request: Request,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    name: str = Form(...),
+    age: str = Form(...),
+    gender: str = Form("prefer_not_to_say"),
+    interests: str = Form("[]"),  # JSON string
+    personality_traits: str = Form("[]"),  # JSON string
+    family_members: str = Form("[]"),  # JSON string
+    comfort_items: str = Form("[]"),  # JSON string
+    fears_or_challenges: Optional[str] = Form(None),
+    favorite_things: Optional[str] = Form(None),
+    photos: Optional[List[UploadFile]] = File(default=None)
 ):
     """Create a new Sunshine profile with form data"""
     try:
-        # Get form data
-        form_data = await request.form()
-        
-        # Extract basic fields
-        name = form_data.get("name", "")
-        age = form_data.get("age", "0")
-        gender = form_data.get("gender", "prefer_not_to_say")
-        fears_or_challenges = form_data.get("fears_or_challenges", "")
-        favorite_things = form_data.get("favorite_things", "")
-        
-        # Extract JSON arrays
-        interests = form_data.get("interests", "[]")
-        personality_traits = form_data.get("personality_traits", "[]")
-        family_members = form_data.get("family_members", "[]")
-        comfort_items = form_data.get("comfort_items", "[]")
-        
-        # Validate required fields
-        if not name:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Name is required"
-            )
-        
         # Calculate birthdate from age
         try:
             age_int = int(age) if age else 5  # Default to 5 if not provided
