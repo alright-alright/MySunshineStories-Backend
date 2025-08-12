@@ -133,21 +133,28 @@ async def create_sunshine(
         test_user_id = "test-user-id-12345"  # TEMPORARILY HARDCODED FOR TESTING
         
         # TEMP: Create test user if it doesn't exist
-        test_user = db.query(User).filter(User.id == test_user_id).first()
-        if not test_user:
-            print(f"Creating test user: {test_user_id}")
-            test_user = User(
-                id=test_user_id,
-                email="test@example.com",
-                full_name="Test User",
-                is_active=True,
-                created_at=datetime.now(timezone.utc)
-            )
-            db.add(test_user)
-            db.commit()
-            print(f"Test user created successfully")
-        else:
-            print(f"Test user already exists: {test_user_id}")
+        print(f"DEBUG: Checking for test user: {test_user_id}")
+        try:
+            test_user = db.query(User).filter(User.id == test_user_id).first()
+            if not test_user:
+                print(f"❌ Test user not found. Creating: {test_user_id}")
+                test_user = User(
+                    id=test_user_id,
+                    email="test@example.com",
+                    full_name="Test User",
+                    is_active=True,
+                    created_at=datetime.now(timezone.utc)
+                )
+                db.add(test_user)
+                db.commit()
+                db.refresh(test_user)
+                print(f"✅ Test user created successfully: {test_user.id}")
+            else:
+                print(f"✅ Test user already exists: {test_user_id}")
+        except Exception as e:
+            print(f"❌ ERROR creating test user: {e}")
+            db.rollback()
+            raise
         
         print(f"DEBUG: Calling sunshine_service.create_sunshine for user_id: {test_user_id}")
         sunshine = sunshine_service.create_sunshine(
