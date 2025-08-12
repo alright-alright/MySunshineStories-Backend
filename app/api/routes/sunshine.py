@@ -51,39 +51,104 @@ async def create_sunshine_json_endpoint(
         )
 
 
-@router.post("/")
+@router.post("/", response_model=SunshineResponse)
 async def create_sunshine(
-    request: Request,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    name: str = Form(...),
+    age: int = Form(...),
+    gender: str = Form("prefer_not_to_say"),
+    interests: str = Form("[]"),
+    personality_traits: str = Form("[]"),
+    family_members: str = Form("[]"),
+    comfort_items: str = Form("[]"),
+    fears_or_challenges: Optional[str] = Form(None),
+    favorite_things: Optional[str] = Form(None),
+    photos: Optional[List[UploadFile]] = File(None)
 ):
     """Create a new Sunshine profile with form data"""
     try:
-        # Get form data
-        form_data = await request.form()
+        import json
+        from datetime import date, timedelta
         
-        # Extract basic fields
-        name = form_data.get("name", "")
-        age = form_data.get("age", "0") 
-        gender = form_data.get("gender", "prefer_not_to_say")
+        # Calculate birthdate from age
+        birthdate = date.today() - timedelta(days=age * 365)
         
-        # For now, just return success with the data received
-        return {
-            "message": "POST /api/v1/sunshines is working!",
-            "status": "success",
-            "user_id": current_user.id,
-            "received_data": {
-                "name": name,
-                "age": age,
-                "gender": gender
-            }
-        }
+        # Parse JSON strings
+        interests_list = json.loads(interests) if interests and interests != "[]" else []
+        traits_list = json.loads(personality_traits) if personality_traits and personality_traits != "[]" else []
+        family_list = json.loads(family_members) if family_members and family_members != "[]" else []
+        comfort_list = json.loads(comfort_items) if comfort_items and comfort_items != "[]" else []
+        
+        # Create the sunshine data object
+        sunshine_data = SunshineCreate(
+            name=name,
+            birthdate=birthdate,
+            gender=gender if gender in ["male", "female", "non_binary"] else "prefer_not_to_say",
+            favorite_activity=", ".join(interests_list) if interests_list else None,
+            favorite_food=favorite_things,
+            fears=[item.strip() for item in fears_or_challenges.split(",") if item.strip()] if fears_or_challenges else [],
+            personality_traits=[
+                PersonalityTraitCreate(trait=trait, strength=3) 
+                for trait in traits_list if trait
+            ]
+        )
+        
+        # Create the sunshine profile
+        sunshine = sunshine_service.create_sunshine(
+            db=db,
+            user_id=current_user.id,
+            sunshine_data=sunshine_data
+        )
+        
+        # Add family members
+        for member in family_list:
+            if isinstance(member, dict) and member.get('name'):
+                try:
+                    member_data = FamilyMemberCreate(
+                        name=member['name'],
+                        relationship=member.get('relation_type', 'other'),
+                        age=int(member['age']) if member.get('age') else None
+                    )
+                    sunshine_service.add_family_member(
+                        db=db,
+                        sunshine_id=sunshine.id,
+                        user_id=current_user.id,
+                        member_data=member_data
+                    )
+                except Exception:
+                    pass  # Skip failed family members
+        
+        # Add comfort items
+        for item in comfort_list:
+            if isinstance(item, dict) and item.get('name'):
+                try:
+                    item_data = ComfortItemCreate(
+                        name=item['name'],
+                        item_type='other',
+                        description=item.get('description', '')
+                    )
+                    sunshine_service.add_comfort_item(
+                        db=db,
+                        sunshine_id=sunshine.id,
+                        user_id=current_user.id,
+                        item_data=item_data
+                    )
+                except Exception:
+                    pass  # Skip failed comfort items
+        
+        # Return the created profile
+        db.refresh(sunshine)
+        return SunshineResponse.from_orm_model(sunshine)
+        
     except Exception as e:
-        return {
-            "message": "POST endpoint works but form processing failed",
-            "error": str(e),
-            "user_id": current_user.id if current_user else None
-        }
+        import traceback
+        print(f"Error creating sunshine: {e}")
+        print(traceback.format_exc())
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create profile: {str(e)}"
+        )
 
 
 @router.post("/json", response_model=SunshineResponse)

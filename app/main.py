@@ -160,8 +160,7 @@ async def health_check():
     }
 
 # Import and include routers AFTER CORS middleware
-from app.api.routes import auth, story, subscription, story_v2, story_enhanced, health
-from app.api.routes import sunshine_fixed as sunshine  # Use fixed version
+from app.api.routes import auth, sunshine, story, subscription, story_v2, story_enhanced, health
 
 # Include all routers
 app.include_router(health.router, prefix="/api/v1", tags=["health"])
