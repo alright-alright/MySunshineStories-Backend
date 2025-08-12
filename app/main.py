@@ -160,31 +160,65 @@ async def health_check():
     }
 
 # Import and include routers AFTER CORS middleware
-from app.api.routes import auth, sunshine, story, subscription, story_v2, story_enhanced, health
+print("\n" + "=" * 60)
+print("IMPORTING ROUTERS...")
+print("=" * 60)
+
+try:
+    from app.api.routes import auth, story, subscription, story_v2, story_enhanced, health
+    # Use minimal sunshine router for testing
+    from app.api.routes import sunshine_minimal as sunshine
+    print("✓ All routers imported successfully (using sunshine_minimal for testing)")
+except Exception as e:
+    print(f"✗ ERROR importing routers: {e}")
+    import traceback
+    traceback.print_exc()
 
 # Debug: Print routes before including
-print("=" * 60)
-print("DEBUGGING SUNSHINE ROUTER")
+print("\n" + "=" * 60)
+print("DEBUGGING SUNSHINE ROUTER BEFORE INCLUSION")
 print("=" * 60)
 
 # Check if sunshine router has routes
 if hasattr(sunshine, 'router'):
-    print(f"Sunshine router exists: {sunshine.router}")
-    print(f"Sunshine router routes: {sunshine.router.routes}")
-    for route in sunshine.router.routes:
+    print(f"✓ Sunshine router exists: {sunshine.router}")
+    print(f"  Number of routes in sunshine.router: {len(sunshine.router.routes)}")
+    for idx, route in enumerate(sunshine.router.routes):
         if hasattr(route, 'methods') and hasattr(route, 'path'):
-            print(f"  Route: {route.methods} {route.path}")
+            print(f"  [{idx}] {route.methods} {route.path} - {route.endpoint.__name__ if hasattr(route, 'endpoint') else 'NO_ENDPOINT'}")
+        else:
+            print(f"  [{idx}] Unknown route type: {type(route)}")
 else:
-    print("ERROR: Sunshine router not found!")
+    print("✗ ERROR: Sunshine router not found!")
 
 # Include all routers
+print("\n" + "=" * 60)
+print("INCLUDING ROUTERS IN APP...")
+print("=" * 60)
+
+print("Including health router...")
 app.include_router(health.router, prefix="/api/v1", tags=["health"])
+
+print("Including auth router...")
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["authentication"])
+
+print("Including sunshine router...")
 app.include_router(sunshine.router, prefix="/api/v1/sunshines", tags=["sunshines"])
+print(f"  ✓ Sunshine router included with prefix /api/v1/sunshines")
+
+print("Including story router...")
 app.include_router(story.router, prefix="/api/v1", tags=["stories"])
+
+print("Including subscription router...")
 app.include_router(subscription.router, prefix="/api/v1/subscription", tags=["subscription"])
+
+print("Including story_v2 router...")
 app.include_router(story_v2.router, prefix="/api/v2/stories", tags=["stories-v2"])
+
+print("Including story_enhanced router...")
 app.include_router(story_enhanced.router, prefix="/api/v3/stories", tags=["stories-enhanced"])
+
+print("✓ All routers included")
 
 # Debug: Print all registered routes
 print("\n" + "=" * 60)
@@ -221,6 +255,27 @@ async def handle_oauth_login_preflight():
 async def handle_all_options(path: str):
     """Catch-all OPTIONS handler for API v1 endpoints"""
     return JSONResponse(content={"status": "ok", "path": path}, status_code=200)
+
+# Print ALL routes at startup for debugging
+print("\n" + "=" * 80)
+print("COMPLETE ROUTE LISTING AT STARTUP")
+print("=" * 80)
+for route in app.routes:
+    if hasattr(route, 'methods') and hasattr(route, 'path'):
+        print(f"  {route.methods or 'NO_METHODS'} -> {route.path}")
+    elif hasattr(route, 'path'):
+        print(f"  MOUNT -> {route.path}")
+print("=" * 80)
+print(f"TOTAL ROUTES: {len(app.routes)}")
+print("=" * 80 + "\n")
+
+# Specifically check sunshine routes
+print("SUNSHINE SPECIFIC ROUTES:")
+for route in app.routes:
+    if hasattr(route, 'path') and 'sunshine' in str(route.path).lower():
+        methods = getattr(route, 'methods', 'NO_METHODS')
+        print(f"  {methods} -> {route.path}")
+print("=" * 80 + "\n")
 
 if __name__ == "__main__":
     import uvicorn
