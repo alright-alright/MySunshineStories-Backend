@@ -23,11 +23,142 @@ router = APIRouter()
 
 @router.post("/", response_model=SunshineResponse)
 async def create_sunshine(
+    current_user: CurrentUser,
+    db: DatabaseSession,
+    # Form data fields
+    name: str = Form(...),
+    age: str = Form(...),  # Will convert to birthdate
+    gender: str = Form(...),
+    fears_or_challenges: Optional[str] = Form(None),
+    favorite_things: Optional[str] = Form(None),
+    interests: Optional[str] = Form(None),  # JSON string
+    personality_traits: Optional[str] = Form(None),  # JSON string
+    family_members: Optional[str] = Form(None),  # JSON string
+    comfort_items: Optional[str] = Form(None),  # JSON string
+    photos: Optional[List[UploadFile]] = File(None)
+):
+    """Create a new Sunshine profile with optional photos"""
+    try:
+        import json
+        from datetime import date, timedelta
+        
+        # Calculate birthdate from age
+        age_int = int(age)
+        birthdate = date.today() - timedelta(days=age_int * 365)
+        
+        # Parse JSON strings
+        interests_list = json.loads(interests) if interests else []
+        traits_list = json.loads(personality_traits) if personality_traits else []
+        family_list = json.loads(family_members) if family_members else []
+        comfort_list = json.loads(comfort_items) if comfort_items else []
+        
+        # Map frontend fields to backend schema
+        sunshine_data = SunshineCreate(
+            name=name,
+            birthdate=birthdate,
+            gender=gender if gender in ["male", "female", "non_binary"] else "prefer_not_to_say",
+            favorite_activity=", ".join(interests_list) if interests_list else None,
+            favorite_food=favorite_things,  # Map favorite_things to favorite_food
+            fears=[item.strip() for item in fears_or_challenges.split(",") if item.strip()] if fears_or_challenges else [],
+            personality_traits=[
+                PersonalityTraitCreate(trait=trait, strength=3) 
+                for trait in traits_list if trait
+            ]
+        )
+        
+        # Create the sunshine profile
+        sunshine = sunshine_service.create_sunshine(
+            db=db,
+            user_id=current_user.id,
+            sunshine_data=sunshine_data
+        )
+        
+        # Add family members
+        for member in family_list:
+            if member.get('name'):
+                member_data = FamilyMemberCreate(
+                    name=member['name'],
+                    relationship=member.get('relation_type', 'other'),
+                    age=int(member['age']) if member.get('age') else None
+                )
+                sunshine_service.add_family_member(
+                    db=db,
+                    sunshine_id=sunshine.id,
+                    user_id=current_user.id,
+                    member_data=member_data
+                )
+        
+        # Add comfort items
+        for item in comfort_list:
+            if item.get('name'):
+                item_data = ComfortItemCreate(
+                    name=item['name'],
+                    item_type='other',  # Default type since frontend doesn't specify
+                    description=item.get('description', '')
+                )
+                sunshine_service.add_comfort_item(
+                    db=db,
+                    sunshine_id=sunshine.id,
+                    user_id=current_user.id,
+                    item_data=item_data
+                )
+        
+        # Upload photos if provided
+        if photos:
+            for idx, photo in enumerate(photos):
+                if photo.filename:
+                    try:
+                        # Upload the photo
+                        photo_url, thumbnail_url = await file_upload_service.upload_profile_photo(
+                            file=photo,
+                            user_id=current_user.id,
+                            sunshine_id=sunshine.id
+                        )
+                        
+                        # Save to database
+                        photo_data = PhotoCreate(
+                            photo_type="profile" if idx == 0 else "gallery",
+                            is_primary=(idx == 0)
+                        )
+                        
+                        sunshine_service.add_photo(
+                            db=db,
+                            sunshine_id=sunshine.id,
+                            user_id=current_user.id,
+                            photo_url=photo_url,
+                            thumbnail_url=thumbnail_url,
+                            photo_data=photo_data
+                        )
+                    except Exception as photo_error:
+                        print(f"Failed to upload photo: {photo_error}")
+                        # Continue with other photos
+        
+        # Refresh to get all related data
+        db.refresh(sunshine)
+        return SunshineResponse.from_orm_model(sunshine)
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        import traceback
+        print(f"Error creating sunshine profile: {e}")
+        print(traceback.format_exc())
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create profile: {str(e)}"
+        )
+
+
+@router.post("/json", response_model=SunshineResponse)
+async def create_sunshine_json(
     sunshine_data: SunshineCreate,
     current_user: CurrentUser,
     db: DatabaseSession
 ):
-    """Create a new Sunshine profile"""
+    """Create a new Sunshine profile (JSON endpoint without file uploads)"""
     try:
         sunshine = sunshine_service.create_sunshine(
             db=db,
