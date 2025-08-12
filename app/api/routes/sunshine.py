@@ -39,7 +39,7 @@ async def diagnostic_post():
 @router.post("/", response_model=SunshineResponse)
 async def create_sunshine(
     # Parameters WITHOUT defaults come FIRST:
-    current_user: CurrentUser,
+    # current_user: CurrentUser,  # TEMPORARILY COMMENTED OUT FOR TESTING
     db: DatabaseSession,
     # Parameters WITH defaults come LAST:
     name: str = Form(...),
@@ -55,9 +55,11 @@ async def create_sunshine(
 ):
     """Create a new Sunshine profile"""
     logger.info("create_sunshine endpoint called")
-    logger.info(f"User ID: {current_user.id if current_user else 'NO USER'}")
+    # logger.info(f"User ID: {current_user.id if current_user else 'NO USER'}")  # TEMP COMMENTED
+    logger.info(f"TESTING WITHOUT AUTH - Using hardcoded user_id")
     logger.info(f"Form data - name: {name}, age: {age}, gender: {gender}")
-    print(f"DEBUG: create_sunshine called for user: {current_user.id if current_user else 'NO USER'}")
+    # print(f"DEBUG: create_sunshine called for user: {current_user.id if current_user else 'NO USER'}")  # TEMP COMMENTED
+    print(f"DEBUG: TESTING WITHOUT AUTH - Using hardcoded user_id")
     print(f"DEBUG: Form data received - name: {name}, age: {age}, gender: {gender}")
     
     try:
@@ -84,10 +86,11 @@ async def create_sunshine(
         )
         
         # Create the sunshine profile
-        print(f"DEBUG: Calling sunshine_service.create_sunshine for user_id: {current_user.id}")
+        test_user_id = "test-user-id-12345"  # TEMPORARILY HARDCODED FOR TESTING
+        print(f"DEBUG: Calling sunshine_service.create_sunshine for user_id: {test_user_id}")
         sunshine = sunshine_service.create_sunshine(
             db=db,
-            user_id=current_user.id,
+            user_id=test_user_id,  # TEMPORARILY HARDCODED
             sunshine_data=sunshine_data
         )
         print(f"DEBUG: Sunshine profile created with ID: {sunshine.id if sunshine else 'FAILED'}")
@@ -100,7 +103,7 @@ async def create_sunshine(
                         # Upload photo
                         photo_url, thumbnail_url = await file_upload_service.upload_profile_photo(
                             file=photo,
-                            user_id=current_user.id,
+                            user_id=test_user_id,  # TEMPORARILY HARDCODED
                             sunshine_id=sunshine.id
                         )
                         
@@ -113,7 +116,7 @@ async def create_sunshine(
                         sunshine_service.add_photo(
                             db=db,
                             sunshine_id=sunshine.id,
-                            user_id=current_user.id,
+                            user_id=test_user_id,  # TEMPORARILY HARDCODED
                             photo_url=photo_url,
                             thumbnail_url=thumbnail_url,
                             photo_data=photo_data
