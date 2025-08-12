@@ -61,7 +61,11 @@ async def generate_story_with_photos(
         def __init__(self):
             # Plan details
             self.plan_type = "premium"
-            self.tier = "premium"
+            # Create a mock enum object with value attribute
+            class MockTier:
+                value = "premium"
+                name = "PREMIUM"
+            self.tier = MockTier()
             
             # Status flags - all active/valid
             self.is_active = True
@@ -342,7 +346,11 @@ async def generate_story_with_photos_test(
         def __init__(self):
             # Plan details
             self.plan_type = "premium"
-            self.tier = "premium"
+            # Create a mock enum object with value attribute
+            class MockTier:
+                value = "premium"
+                name = "PREMIUM"
+            self.tier = MockTier()
             
             # Status flags - all active/valid
             self.is_active = True
