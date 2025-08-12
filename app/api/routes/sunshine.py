@@ -71,10 +71,43 @@ async def create_sunshine(
         # Parse JSON strings from form data
         print("DEBUG: Parsing JSON from form data...")
         interests_list = json.loads(interests) if interests and interests != "[]" else []
-        traits_list = json.loads(personality_traits) if personality_traits and personality_traits != "[]" else []
-        family_list = json.loads(family_members) if family_members and family_members != "[]" else []
-        comfort_list = json.loads(comfort_items) if comfort_items and comfort_items != "[]" else []
+        
+        # Convert personality traits to expected format
+        traits_list = []
+        if personality_traits and personality_traits != "[]":
+            raw_traits = json.loads(personality_traits)
+            for trait in raw_traits:
+                if isinstance(trait, str):
+                    # Convert string to PersonalityTraitCreate format
+                    traits_list.append({"trait": trait})
+                else:
+                    # Already in correct format
+                    traits_list.append(trait)
+        
+        # Convert family members to expected format
+        family_list = []
+        if family_members and family_members != "[]":
+            raw_family = json.loads(family_members)
+            for member in raw_family:
+                if isinstance(member, str):
+                    # Convert string to basic family member format
+                    family_list.append({"name": member, "relationship": "family"})
+                else:
+                    family_list.append(member)
+        
+        # Convert comfort items to expected format
+        comfort_list = []
+        if comfort_items and comfort_items != "[]":
+            raw_comfort = json.loads(comfort_items)
+            for item in raw_comfort:
+                if isinstance(item, str):
+                    # Convert string to comfort item format
+                    comfort_list.append({"name": item})
+                else:
+                    comfort_list.append(item)
+        
         print(f"DEBUG: Parsed lists - interests: {len(interests_list)}, traits: {len(traits_list)}")
+        print(f"DEBUG: Sample trait format: {traits_list[0] if traits_list else 'no traits'}")
         
         # Calculate birthdate from age
         today = date.today()
