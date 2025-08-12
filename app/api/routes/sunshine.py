@@ -45,14 +45,20 @@ async def create_sunshine(
     photos: List[UploadFile] = File(default=[])
 ):
     """Create a new Sunshine profile"""
+    print(f"DEBUG: create_sunshine called for user: {current_user.id if current_user else 'NO USER'}")
+    print(f"DEBUG: Form data received - name: {name}, age: {age}, gender: {gender}")
+    
     try:
         # Parse JSON strings from form data
+        print("DEBUG: Parsing JSON from form data...")
         interests_list = json.loads(interests) if interests and interests != "[]" else []
         traits_list = json.loads(personality_traits) if personality_traits and personality_traits != "[]" else []
         family_list = json.loads(family_members) if family_members and family_members != "[]" else []
         comfort_list = json.loads(comfort_items) if comfort_items and comfort_items != "[]" else []
+        print(f"DEBUG: Parsed lists - interests: {len(interests_list)}, traits: {len(traits_list)}")
         
         # Create SunshineCreate object from form data
+        print("DEBUG: Creating SunshineCreate object...")
         sunshine_data = SunshineCreate(
             name=name,
             age=age,
@@ -66,11 +72,13 @@ async def create_sunshine(
         )
         
         # Create the sunshine profile
+        print(f"DEBUG: Calling sunshine_service.create_sunshine for user_id: {current_user.id}")
         sunshine = sunshine_service.create_sunshine(
             db=db,
             user_id=current_user.id,
             sunshine_data=sunshine_data
         )
+        print(f"DEBUG: Sunshine profile created with ID: {sunshine.id if sunshine else 'FAILED'}")
         
         # Handle photo uploads if any
         if photos and len(photos) > 0:
@@ -105,16 +113,21 @@ async def create_sunshine(
         return SunshineResponse.from_orm_model(sunshine)
         
     except json.JSONDecodeError as e:
+        print(f"ERROR: JSON decode error in create_sunshine: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid JSON in form data: {str(e)}"
         )
     except ValueError as e:
+        print(f"ERROR: Value error in create_sunshine: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
     except Exception as e:
+        import traceback
+        print(f"ERROR: Unexpected error in create_sunshine: {e}")
+        print(f"ERROR: Full traceback:\n{traceback.format_exc()}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Profile creation failed: {str(e)}"
