@@ -2,8 +2,9 @@
 Authentication API routes
 """
 from typing import Dict, Any
-from fastapi import APIRouter, HTTPException, status, Depends, Response
+from fastapi import APIRouter, HTTPException, status, Depends, Response, Request
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr
 
 from app.core.dependencies import DatabaseSession, CurrentUser
@@ -13,6 +14,21 @@ from app.services.oauth_service import OAuthService
 from app.schemas.user import UserCreate, User as UserSchema, UserWithSubscription
 
 router = APIRouter()
+
+# Add explicit OPTIONS handler for OAuth exchange endpoint
+@router.options("/oauth/exchange")
+async def oauth_exchange_options():
+    """Handle OPTIONS preflight for OAuth exchange endpoint"""
+    return JSONResponse(
+        content={"message": "OK"},
+        status_code=200,
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "*",
+            "Access-Control-Allow-Credentials": "true"
+        }
+    )
 
 
 # Request/Response models
@@ -119,7 +135,7 @@ async def oauth_login(
     # Demo mode for development
     if request.token == "demo_token":
         # Create or get demo user
-        from app.models.user import User
+        from app.models.database_models import User
         demo_email = "demo@mysunshinestory.ai"
         user = db.query(User).filter(User.email == demo_email).first()
         
@@ -130,8 +146,8 @@ async def oauth_login(
                 full_name="Demo User",
                 is_verified=True,
                 is_active=True,
-                oauth_provider=request.provider,
-                oauth_provider_id="demo_id"
+                google_id="demo_id" if request.provider == "google" else None,
+                apple_id="demo_id" if request.provider == "apple" else None
             )
             db.add(user)
             db.commit()
@@ -184,50 +200,123 @@ async def oauth_code_exchange(
     """
     Exchange OAuth authorization code for tokens and login
     """
-    # Exchange code for tokens
-    if request.provider.lower() == "google":
-        token_response = await OAuthService.exchange_google_code(
-            request.code, 
-            request.redirect_uri
-        )
-        if token_response:
-            # Verify the ID token
-            user_data = await OAuthService.verify_google_token(
-                token_response.get("id_token")
+    try:
+        # Log the request for debugging
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"OAuth exchange request: provider={request.provider}, redirect_uri={request.redirect_uri}")
+        
+        # Exchange code for tokens
+        token_response = None
+        user_data = None
+        
+        if request.provider.lower() == "google":
+            try:
+                token_response = await OAuthService.exchange_google_code(
+                    request.code, 
+                    request.redirect_uri
+                )
+                if token_response:
+                    # Verify the ID token
+                    user_data = await OAuthService.verify_google_token(
+                        token_response.get("id_token")
+                    )
+            except Exception as e:
+                logger.error(f"Google OAuth exchange failed: {str(e)}")
+                # For now, return a more graceful error
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="OAuth service temporarily unavailable. Please try again."
+                )
+                
+        elif request.provider.lower() == "apple":
+            try:
+                token_response = await OAuthService.exchange_apple_code(
+                    request.code,
+                    request.redirect_uri
+                )
+                if token_response:
+                    # Verify the ID token
+                    user_data = await OAuthService.verify_apple_token(
+                        token_response.get("id_token")
+                    )
+            except Exception as e:
+                logger.error(f"Apple OAuth exchange failed: {str(e)}")
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="OAuth service temporarily unavailable. Please try again."
+                )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid OAuth provider"
             )
-    elif request.provider.lower() == "apple":
-        token_response = await OAuthService.exchange_apple_code(
-            request.code,
-            request.redirect_uri
+        
+        # If OAuth service is not configured, use demo mode
+        if not user_data:
+            # Check if we're in demo mode
+            if not token_response:
+                # Demo mode - create a demo user
+                logger.info("OAuth not configured, using demo mode")
+                from app.models.database_models import User
+                demo_email = f"demo_{request.provider}@mysunshinestories.com"
+                
+                # Check if demo user exists
+                user = db.query(User).filter(User.email == demo_email).first()
+                if not user:
+                    user = User(
+                        email=demo_email,
+                        username=f"demo_{request.provider}_user",
+                        full_name="Demo User",
+                        is_verified=True,
+                        is_active=True,
+                        google_id=f"demo_{request.provider}_id" if request.provider == "google" else None,
+                        apple_id=f"demo_{request.provider}_id" if request.provider == "apple" else None
+                    )
+                    db.add(user)
+                    db.commit()
+                    db.refresh(user)
+                
+                # Generate tokens for demo user
+                tokens = create_tokens(user.id, user.email)
+                
+                return LoginResponse(
+                    access_token=tokens["access_token"],
+                    refresh_token=tokens["refresh_token"],
+                    user=UserSchema.model_validate(user)
+                )
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="OAuth authentication failed"
+                )
+        
+        # Create or update user
+        user = UserService.create_oauth_user(db, user_data)
+        
+        # Generate tokens
+        tokens = create_tokens(user.id, user.email)
+        
+        return LoginResponse(
+            access_token=tokens["access_token"],
+            refresh_token=tokens["refresh_token"],
+            user=UserSchema.model_validate(user)
         )
-        if token_response:
-            # Verify the ID token
-            user_data = await OAuthService.verify_apple_token(
-                token_response.get("id_token")
-            )
-    else:
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as e:
+        # Log unexpected errors
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Unexpected error in OAuth exchange: {str(e)}")
+        
+        # Return a generic error with CORS-safe status
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid OAuth provider"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred during authentication"
         )
-    
-    if not user_data:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="OAuth authentication failed"
-        )
-    
-    # Create or update user
-    user = UserService.create_oauth_user(db, user_data)
-    
-    # Generate tokens
-    tokens = create_tokens(user.id, user.email)
-    
-    return LoginResponse(
-        access_token=tokens["access_token"],
-        refresh_token=tokens["refresh_token"],
-        user=UserSchema.model_validate(user)
-    )
 
 
 @router.post("/refresh", response_model=Dict[str, str])

@@ -65,26 +65,56 @@ app.add_middleware(
     max_age=3600,           # Cache preflight requests for 1 hour
 )
 
-# Create a second middleware for Vercel preview deployments
+# Create a second middleware for Vercel preview deployments and error handling
 @app.middleware("http")
-async def add_cors_for_vercel_previews(request: Request, call_next):
+async def add_cors_and_handle_errors(request: Request, call_next):
     """
-    Additional middleware to handle Vercel preview deployments dynamically
+    Middleware to handle Vercel preview deployments and ensure CORS headers on errors
     """
     origin = request.headers.get("origin")
     
-    # Check if it's a Vercel preview deployment
-    if origin and "vercel.app" in origin and "my-sunshine" in origin:
+    try:
+        # Process the request
         response = await call_next(request)
-        response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-        response.headers["Access-Control-Allow-Methods"] = "*"
-        response.headers["Access-Control-Allow-Headers"] = "*"
+        
+        # Add CORS headers for Vercel preview deployments
+        if origin and "vercel.app" in origin and "my-sunshine" in origin:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "*"
+            response.headers["Access-Control-Allow-Headers"] = "*"
+        
+        # Ensure CORS headers are present for OAuth endpoints even on errors
+        if "/auth/oauth" in str(request.url) and origin:
+            if origin in origins or ("vercel.app" in origin and "my-sunshine" in origin):
+                response.headers["Access-Control-Allow-Origin"] = origin
+                response.headers["Access-Control-Allow-Credentials"] = "true"
+        
         return response
-    
-    # For all other requests, just proceed normally
-    response = await call_next(request)
-    return response
+        
+    except Exception as e:
+        # If an error occurs, create a proper response with CORS headers
+        import traceback
+        error_detail = str(e) if str(e) else "Internal server error"
+        
+        # Log the error
+        print(f"Error in request {request.url}: {error_detail}")
+        print(traceback.format_exc())
+        
+        # Create error response with CORS headers
+        response = JSONResponse(
+            status_code=500,
+            content={"detail": error_detail}
+        )
+        
+        # Add CORS headers to error response
+        if origin and (origin in origins or ("vercel.app" in origin and "my-sunshine" in origin)):
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "*"
+            response.headers["Access-Control-Allow-Headers"] = "*"
+        
+        return response
 
 # Serve static files
 os.makedirs("static", exist_ok=True)
@@ -130,7 +160,8 @@ async def health_check():
     }
 
 # Import and include routers AFTER CORS middleware
-from app.api.routes import auth, sunshine, story, subscription, story_v2, story_enhanced, health
+from app.api.routes import auth, story, subscription, story_v2, story_enhanced, health
+from app.api.routes import sunshine_fixed as sunshine  # Use fixed version
 
 # Include all routers
 app.include_router(health.router, prefix="/api/v1", tags=["health"])
@@ -141,7 +172,18 @@ app.include_router(subscription.router, prefix="/api/v1/subscription", tags=["su
 app.include_router(story_v2.router, prefix="/api/v2/stories", tags=["stories-v2"])
 app.include_router(story_enhanced.router, prefix="/api/v3/stories", tags=["stories-enhanced"])
 
+# Debug endpoint to test POST directly
+@app.post("/api/v1/sunshines/debug")
+async def debug_sunshine_post():
+    """Debug POST endpoint to verify routing works"""
+    return JSONResponse(content={"message": "Direct POST handler works", "endpoint": "/api/v1/sunshines/debug"}, status_code=200)
+
 # Explicit OPTIONS handlers for critical endpoints
+@app.options("/api/v1/sunshines")
+async def handle_sunshines_preflight():
+    """Explicit OPTIONS handler for sunshines endpoint"""
+    return JSONResponse(content={"status": "ok", "methods": ["GET", "POST", "OPTIONS"]}, status_code=200)
+
 @app.options("/api/v1/auth/oauth/exchange")
 async def handle_oauth_exchange_preflight():
     """Explicit OPTIONS handler for OAuth exchange endpoint"""
@@ -156,6 +198,7 @@ async def handle_oauth_login_preflight():
 async def handle_all_options(path: str):
     """Catch-all OPTIONS handler for API v1 endpoints"""
     return JSONResponse(content={"status": "ok", "path": path}, status_code=200)
+
 
 if __name__ == "__main__":
     import uvicorn
