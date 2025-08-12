@@ -62,6 +62,7 @@ async def generate_story_with_photos(
             self.plan_type = "premium"
             self.stories_limit = 999
             self.is_active = True
+            self.status = "active"  # Required by story generation
     
     # Mock user object with subscription
     class MockUser:
@@ -295,6 +296,7 @@ async def generate_story_with_photos_test(
             self.plan_type = "premium"
             self.stories_limit = 999
             self.is_active = True
+            self.status = "active"  # Required by story generation
     
     # Mock user object with subscription
     class MockUser:
