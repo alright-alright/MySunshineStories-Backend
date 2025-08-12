@@ -2,7 +2,7 @@
 Enhanced Story Generation API with Direct Photo Upload
 Provides advanced story generation with real-time photo analysis
 """
-from fastapi import APIRouter, HTTPException, status, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, status, UploadFile, File, Form, Depends
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone
 import uuid
@@ -212,6 +212,49 @@ async def generate_story_with_photos(
     finally:
         # Clear character cache for next story
         enhanced_story_generator.character_profiles.clear()
+
+
+# TEMPORARY: Test version without auth for story generation
+@router.post("/generate-with-photos-test", response_model=EnhancedStoryResponse)
+async def generate_story_with_photos_test(
+    db: DatabaseSession,
+    sunshine_id: str = Form(...),
+    fear_or_challenge: str = Form(...),
+    tone: str = Form(default="empowering"),
+    include_family: bool = Form(default=True),
+    include_comfort_items: bool = Form(default=True),
+    custom_elements: Optional[str] = Form(default=None),
+    # Photo uploads for real-time character analysis
+    additional_child_photos: List[UploadFile] = File(default=[]),
+    additional_family_photos: List[UploadFile] = File(default=[]),
+    comfort_item_photos: List[UploadFile] = File(default=[])
+):
+    """TEMPORARY: Test version without authentication"""
+    # Use hardcoded test user
+    test_user_id = "test-user-id-12345"
+    print(f"TEMP: Generating story for test user: {test_user_id}")
+    
+    # Mock user object for compatibility
+    class MockUser:
+        def __init__(self):
+            self.id = test_user_id
+    
+    mock_user = MockUser()
+    
+    # Call the original function with mock user
+    return await generate_story_with_photos(
+        current_user=mock_user,
+        db=db,
+        sunshine_id=sunshine_id,
+        fear_or_challenge=fear_or_challenge,
+        tone=tone,
+        include_family=include_family,
+        include_comfort_items=include_comfort_items,
+        custom_elements=custom_elements,
+        additional_child_photos=additional_child_photos,
+        additional_family_photos=additional_family_photos,
+        comfort_item_photos=comfort_item_photos
+    )
 
 
 @router.post("/analyze-photo-for-character")
