@@ -54,8 +54,8 @@ async def create_sunshine_json_endpoint(
 @router.post("/")
 async def create_sunshine(
     request: Request,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     """Create a new Sunshine profile with form data"""
     try:
@@ -109,9 +109,9 @@ async def create_sunshine_json(
 
 @router.get("/", response_model=List[SunshineSummary])
 async def get_my_sunshines(
-    current_user: CurrentUser,
-    db: DatabaseSession,
-    include_inactive: bool = False
+    include_inactive: bool = False,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     """Get all Sunshine profiles for the current user"""
     sunshines = sunshine_service.get_user_sunshines(
@@ -149,8 +149,8 @@ async def get_my_sunshines(
 @router.get("/{sunshine_id}", response_model=SunshineResponse)
 async def get_sunshine(
     sunshine_id: str,
-    current_user: CurrentUser,
-    db: DatabaseSession
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     """Get a specific Sunshine profile"""
     sunshine = sunshine_service.get_sunshine(
