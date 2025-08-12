@@ -56,10 +56,20 @@ async def generate_story_with_photos(
     test_user_id = "test-user-id-12345"
     print(f"TEMP: Generating story at original URL for test user: {test_user_id}")
     
-    # Mock user object for compatibility
+    # Mock subscription object
+    class MockSubscription:
+        def __init__(self):
+            self.plan_type = "premium"
+            self.stories_limit = 999
+            self.is_active = True
+    
+    # Mock user object with subscription
     class MockUser:
         def __init__(self):
             self.id = test_user_id
+            self.email = "test@example.com"
+            self.full_name = "Test User"
+            self.subscription = MockSubscription()
     
     mock_user = MockUser()
     
@@ -279,10 +289,20 @@ async def generate_story_with_photos_test(
     test_user_id = "test-user-id-12345"
     print(f"TEMP: Generating story for test user: {test_user_id}")
     
-    # Mock user object for compatibility
+    # Mock subscription object
+    class MockSubscription:
+        def __init__(self):
+            self.plan_type = "premium"
+            self.stories_limit = 999
+            self.is_active = True
+    
+    # Mock user object with subscription
     class MockUser:
         def __init__(self):
             self.id = test_user_id
+            self.email = "test@example.com"
+            self.full_name = "Test User"
+            self.subscription = MockSubscription()
     
     mock_user = MockUser()
     
