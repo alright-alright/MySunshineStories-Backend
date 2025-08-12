@@ -706,18 +706,19 @@ async def get_character_reference(
 
 
 # Debug: Print all routes registered on this router
-print("\n=== SUNSHINE ROUTER ROUTES ===")
-print(f"Sunshine router has {len(router.routes)} routes:")
-for route in router.routes:
-    if hasattr(route, 'methods') and hasattr(route, 'path'):
-        print(f"  - {route.methods} {route.path}")
-        if route.path == "/" and "POST" in route.methods:
-            print(f"    ^^ MAIN CREATE ENDPOINT FOUND!")
+# Commented out to prevent import-time execution issues
+# print("\n=== SUNSHINE ROUTER ROUTES ===")
+# print(f"Sunshine router has {len(router.routes)} routes:")
+# for route in router.routes:
+#     if hasattr(route, 'methods') and hasattr(route, 'path'):
+#         print(f"  - {route.methods} {route.path}")
+#         if route.path == "/" and "POST" in route.methods:
+#             print(f"    ^^ MAIN CREATE ENDPOINT FOUND!")
 
-# Check specifically for POST routes
-post_routes = [r for r in router.routes if hasattr(r, 'methods') and 'POST' in r.methods]
-print(f"\nTotal POST routes in sunshine router: {len(post_routes)}")
-for route in post_routes:
-    if hasattr(route, 'path'):
-        print(f"  - POST {route.path}")
-print("=== END SUNSHINE ROUTER DEBUG ===\n")
+# # Check specifically for POST routes
+# post_routes = [r for r in router.routes if hasattr(r, 'methods') and 'POST' in r.methods]
+# print(f"\nTotal POST routes in sunshine router: {len(post_routes)}")
+# for route in post_routes:
+#     if hasattr(route, 'path'):
+#         print(f"  - POST {route.path}")
+# print("=== END SUNSHINE ROUTER DEBUG ===\n")

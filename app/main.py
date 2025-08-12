@@ -160,22 +160,22 @@ async def health_check():
     }
 
 # Import and include routers AFTER CORS middleware
-print("DEBUG: Starting router imports...")
+# print("DEBUG: Starting router imports...")
 try:
     from app.api.routes import auth, sunshine, story, subscription, story_v2, story_enhanced, health
-    print(f"DEBUG: Successfully imported sunshine module. Router type: {type(sunshine.router)}")
+    # print(f"DEBUG: Successfully imported sunshine module. Router type: {type(sunshine.router)}")
 except Exception as e:
     print(f"ERROR: Failed to import routers: {e}")
     import traceback
     traceback.print_exc()
 
 # Include all routers
-print("DEBUG: Including routers...")
+# print("DEBUG: Including routers...")
 app.include_router(health.router, prefix="/api/v1", tags=["health"])
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["authentication"])
-print(f"DEBUG: About to include sunshine router. Has {len(sunshine.router.routes)} routes")
+# print(f"DEBUG: About to include sunshine router. Has {len(sunshine.router.routes)} routes")
 app.include_router(sunshine.router, prefix="/api/v1/sunshines", tags=["sunshines"])
-print("DEBUG: Sunshine router included")
+# print("DEBUG: Sunshine router included")
 app.include_router(story.router, prefix="/api/v1", tags=["stories"])
 app.include_router(subscription.router, prefix="/api/v1/subscription", tags=["subscription"])
 app.include_router(story_v2.router, prefix="/api/v2/stories", tags=["stories-v2"])
@@ -210,19 +210,20 @@ async def handle_all_options(path: str):
 
 
 # Debug: Print all registered routes at startup
-print("\n=== REGISTERED ROUTES AT STARTUP ===")
-for route in app.routes:
-    if hasattr(route, 'methods') and hasattr(route, 'path'):
-        print(f"Route: {route.methods} {route.path}")
-        if "sunshines" in route.path:
-            print(f"  ^^ SUNSHINE ROUTE FOUND: {route.methods} {route.path}")
+# Commented out to prevent deployment issues
+# print("\n=== REGISTERED ROUTES AT STARTUP ===")
+# for route in app.routes:
+#     if hasattr(route, 'methods') and hasattr(route, 'path'):
+#         print(f"Route: {route.methods} {route.path}")
+#         if "sunshines" in route.path:
+#             print(f"  ^^ SUNSHINE ROUTE FOUND: {route.methods} {route.path}")
 
-# Specific check for sunshine POST routes
-sunshine_post_routes = [r for r in app.routes if hasattr(r, 'path') and '/sunshines' in r.path and hasattr(r, 'methods') and 'POST' in r.methods]
-print(f"\nTotal sunshine POST routes found: {len(sunshine_post_routes)}")
-for route in sunshine_post_routes:
-    print(f"  - {route.path}")
-print("=== END ROUTE DEBUG ===\n")
+# # Specific check for sunshine POST routes
+# sunshine_post_routes = [r for r in app.routes if hasattr(r, 'path') and '/sunshines' in r.path and hasattr(r, 'methods') and 'POST' in r.methods]
+# print(f"\nTotal sunshine POST routes found: {len(sunshine_post_routes)}")
+# for route in sunshine_post_routes:
+#     print(f"  - {route.path}")
+# print("=== END ROUTE DEBUG ===\n")
 
 
 if __name__ == "__main__":
