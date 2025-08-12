@@ -20,6 +20,11 @@ from app.schemas.sunshine import (
 router = APIRouter()
 
 
+@router.post("/folder-test")
+async def folder_test():
+    return {"message": "Claude Code in correct folder", "timestamp": "2025-08-11"}
+
+
 # ============== Sunshine Profile Endpoints ==============
 
 @router.post("/", response_model=SunshineResponse)
