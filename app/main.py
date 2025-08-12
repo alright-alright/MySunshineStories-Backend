@@ -65,26 +65,56 @@ app.add_middleware(
     max_age=3600,           # Cache preflight requests for 1 hour
 )
 
-# Create a second middleware for Vercel preview deployments
+# Create a second middleware for Vercel preview deployments and error handling
 @app.middleware("http")
-async def add_cors_for_vercel_previews(request: Request, call_next):
+async def add_cors_and_handle_errors(request: Request, call_next):
     """
-    Additional middleware to handle Vercel preview deployments dynamically
+    Middleware to handle Vercel preview deployments and ensure CORS headers on errors
     """
     origin = request.headers.get("origin")
     
-    # Check if it's a Vercel preview deployment
-    if origin and "vercel.app" in origin and "my-sunshine" in origin:
+    try:
+        # Process the request
         response = await call_next(request)
-        response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-        response.headers["Access-Control-Allow-Methods"] = "*"
-        response.headers["Access-Control-Allow-Headers"] = "*"
+        
+        # Add CORS headers for Vercel preview deployments
+        if origin and "vercel.app" in origin and "my-sunshine" in origin:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "*"
+            response.headers["Access-Control-Allow-Headers"] = "*"
+        
+        # Ensure CORS headers are present for OAuth endpoints even on errors
+        if "/auth/oauth" in str(request.url) and origin:
+            if origin in origins or ("vercel.app" in origin and "my-sunshine" in origin):
+                response.headers["Access-Control-Allow-Origin"] = origin
+                response.headers["Access-Control-Allow-Credentials"] = "true"
+        
         return response
-    
-    # For all other requests, just proceed normally
-    response = await call_next(request)
-    return response
+        
+    except Exception as e:
+        # If an error occurs, create a proper response with CORS headers
+        import traceback
+        error_detail = str(e) if str(e) else "Internal server error"
+        
+        # Log the error
+        print(f"Error in request {request.url}: {error_detail}")
+        print(traceback.format_exc())
+        
+        # Create error response with CORS headers
+        response = JSONResponse(
+            status_code=500,
+            content={"detail": error_detail}
+        )
+        
+        # Add CORS headers to error response
+        if origin and (origin in origins or ("vercel.app" in origin and "my-sunshine" in origin)):
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "*"
+            response.headers["Access-Control-Allow-Headers"] = "*"
+        
+        return response
 
 # Serve static files
 os.makedirs("static", exist_ok=True)
