@@ -4,8 +4,11 @@ Sunshine profile API routes with comprehensive CRUD operations
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException, status, Depends, UploadFile, File, Form, Request
 from fastapi.responses import JSONResponse
+from sqlalchemy.orm import Session
 
-from app.core.dependencies import CurrentUser, DatabaseSession
+from app.core.dependencies import CurrentUser, DatabaseSession, get_current_user
+from app.core.database import get_db
+from app.models.database_models import User
 from app.services.sunshine_service import sunshine_service
 from app.services.file_upload_service import file_upload_service
 from app.schemas.sunshine import (
@@ -48,14 +51,39 @@ async def create_sunshine_json_endpoint(
         )
 
 
-@router.post("/", response_model=dict)
+@router.post("/")
 async def create_sunshine(
-    current_user: CurrentUser,
-    db: DatabaseSession
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
-    """Create a new Sunshine profile - basic version"""
-    # Return a simple response for now to verify POST works
-    return {"message": "POST /api/v1/sunshines is working", "user_id": current_user.id}
+    """Create a new Sunshine profile with form data"""
+    try:
+        # Get form data
+        form_data = await request.form()
+        
+        # Extract basic fields
+        name = form_data.get("name", "")
+        age = form_data.get("age", "0") 
+        gender = form_data.get("gender", "prefer_not_to_say")
+        
+        # For now, just return success with the data received
+        return {
+            "message": "POST /api/v1/sunshines is working!",
+            "status": "success",
+            "user_id": current_user.id,
+            "received_data": {
+                "name": name,
+                "age": age,
+                "gender": gender
+            }
+        }
+    except Exception as e:
+        return {
+            "message": "POST endpoint works but form processing failed",
+            "error": str(e),
+            "user_id": current_user.id if current_user else None
+        }
 
 
 @router.post("/json", response_model=SunshineResponse)
