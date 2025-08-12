@@ -5,6 +5,7 @@ from typing import List, Optional
 from fastapi import APIRouter, HTTPException, status, Depends, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 import json
+import logging
 
 from app.core.dependencies import CurrentUser, DatabaseSession
 from app.services.sunshine_service import sunshine_service
@@ -18,11 +19,19 @@ from app.schemas.sunshine import (
 )
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.post("/folder-test")
 async def folder_test():
     return {"message": "Claude Code in correct folder", "timestamp": "2025-08-11"}
+
+
+@router.post("/diagnostic")
+async def diagnostic_post():
+    """Diagnostic endpoint to test POST routing"""
+    logger.info("Diagnostic POST endpoint called successfully")
+    return {"message": "POST routing works", "status": "success", "endpoint": "/api/v1/sunshines/diagnostic"}
 
 
 # ============== Sunshine Profile Endpoints ==============
@@ -45,6 +54,9 @@ async def create_sunshine(
     photos: List[UploadFile] = File(default=[])
 ):
     """Create a new Sunshine profile"""
+    logger.info("create_sunshine endpoint called")
+    logger.info(f"User ID: {current_user.id if current_user else 'NO USER'}")
+    logger.info(f"Form data - name: {name}, age: {age}, gender: {gender}")
     print(f"DEBUG: create_sunshine called for user: {current_user.id if current_user else 'NO USER'}")
     print(f"DEBUG: Form data received - name: {name}, age: {age}, gender: {gender}")
     
