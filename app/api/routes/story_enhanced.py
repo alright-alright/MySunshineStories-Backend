@@ -4,7 +4,7 @@ Provides advanced story generation with real-time photo analysis
 """
 from fastapi import APIRouter, HTTPException, status, UploadFile, File, Form, Depends
 from typing import Optional, List, Dict, Any
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import uuid
 import json
 
@@ -63,6 +63,7 @@ async def generate_story_with_photos(
             self.stories_limit = 999
             self.is_active = True
             self.status = "active"  # Required by story generation
+            self.current_period_end = datetime.now(timezone.utc) + timedelta(days=30)  # 30 days from now
     
     # Mock user object with subscription
     class MockUser:
@@ -297,6 +298,7 @@ async def generate_story_with_photos_test(
             self.stories_limit = 999
             self.is_active = True
             self.status = "active"  # Required by story generation
+            self.current_period_end = datetime.now(timezone.utc) + timedelta(days=30)  # 30 days from now
     
     # Mock user object with subscription
     class MockUser:
