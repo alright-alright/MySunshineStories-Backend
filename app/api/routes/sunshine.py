@@ -6,7 +6,8 @@ from fastapi import APIRouter, HTTPException, status, Depends, UploadFile, File,
 from fastapi.responses import JSONResponse
 import json
 
-from app.core.dependencies import CurrentUser, DatabaseSession
+from app.core.dependencies import CurrentUser, DatabaseSession, get_current_user
+from app.core.database import get_db
 from app.services.sunshine_service import sunshine_service
 from app.services.file_upload_service import file_upload_service
 from app.schemas.sunshine import (
@@ -39,8 +40,8 @@ async def create_sunshine(
     family_members: str = Form("[]"),
     comfort_items: str = Form("[]"),
     photos: List[UploadFile] = File(default=[]),
-    current_user: CurrentUser,
-    db: DatabaseSession
+    current_user: CurrentUser = Depends(get_current_user),
+    db: DatabaseSession = Depends(get_db)
 ):
     """Create a new Sunshine profile"""
     try:
