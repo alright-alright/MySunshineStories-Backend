@@ -29,6 +29,10 @@ async def folder_test():
 
 @router.post("/", response_model=SunshineResponse)
 async def create_sunshine(
+    # Parameters WITHOUT defaults come FIRST:
+    current_user: CurrentUser,
+    db: DatabaseSession,
+    # Parameters WITH defaults come LAST:
     name: str = Form(...),
     age: int = Form(...),
     gender: str = Form(...),
@@ -38,9 +42,7 @@ async def create_sunshine(
     favorite_things: str = Form(None),
     family_members: str = Form("[]"),
     comfort_items: str = Form("[]"),
-    photos: List[UploadFile] = File(default=[]),
-    current_user: CurrentUser,
-    db: DatabaseSession
+    photos: List[UploadFile] = File(default=[])
 ):
     """Create a new Sunshine profile"""
     try:
