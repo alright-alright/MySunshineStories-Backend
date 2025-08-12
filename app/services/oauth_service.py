@@ -120,6 +120,13 @@ class OAuthService:
             Dictionary with tokens or None if failed
         """
         try:
+            # Check if credentials are configured
+            if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
+                print("WARNING: Google OAuth credentials not configured")
+                print(f"Client ID exists: {bool(settings.GOOGLE_CLIENT_ID)}")
+                print(f"Client Secret exists: {bool(settings.GOOGLE_CLIENT_SECRET)}")
+                return None
+            
             async with httpx.AsyncClient() as client:
                 response = await client.post(
                     "https://oauth2.googleapis.com/token",
@@ -135,11 +142,19 @@ class OAuthService:
                 if response.status_code == 200:
                     return response.json()
                 
-                print(f"Google code exchange failed: {response.text}")
+                print(f"Google code exchange failed with status {response.status_code}: {response.text}")
+                # Log more details about the error
+                if response.status_code == 400:
+                    error_data = response.json()
+                    print(f"Error details: {error_data}")
+                    if "invalid_client" in str(error_data):
+                        print("CRITICAL: Invalid client credentials - check GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET")
                 return None
                 
         except Exception as e:
             print(f"Error exchanging Google code: {e}")
+            import traceback
+            print(traceback.format_exc())
             return None
     
     @staticmethod

@@ -135,7 +135,7 @@ async def oauth_login(
     # Demo mode for development
     if request.token == "demo_token":
         # Create or get demo user
-        from app.models.user import User
+        from app.models.database_models import User
         demo_email = "demo@mysunshinestory.ai"
         user = db.query(User).filter(User.email == demo_email).first()
         
@@ -146,8 +146,8 @@ async def oauth_login(
                 full_name="Demo User",
                 is_verified=True,
                 is_active=True,
-                oauth_provider=request.provider,
-                oauth_provider_id="demo_id"
+                google_id="demo_id" if request.provider == "google" else None,
+                apple_id="demo_id" if request.provider == "apple" else None
             )
             db.add(user)
             db.commit()
@@ -258,7 +258,7 @@ async def oauth_code_exchange(
             if not token_response:
                 # Demo mode - create a demo user
                 logger.info("OAuth not configured, using demo mode")
-                from app.models.user import User
+                from app.models.database_models import User
                 demo_email = f"demo_{request.provider}@mysunshinestories.com"
                 
                 # Check if demo user exists
@@ -270,8 +270,8 @@ async def oauth_code_exchange(
                         full_name="Demo User",
                         is_verified=True,
                         is_active=True,
-                        oauth_provider=request.provider,
-                        oauth_provider_id=f"demo_{request.provider}_id"
+                        google_id=f"demo_{request.provider}_id" if request.provider == "google" else None,
+                        apple_id=f"demo_{request.provider}_id" if request.provider == "apple" else None
                     )
                     db.add(user)
                     db.commit()
