@@ -159,6 +159,33 @@ async def create_sunshine(
         )
 
 
+# Duplicate route to handle /api/v1/sunshines (without trailing slash)
+@router.post("", response_model=SunshineResponse)
+async def create_sunshine_no_slash(
+    # Parameters WITHOUT defaults come FIRST:
+    # current_user: CurrentUser,  # TEMPORARILY COMMENTED OUT FOR TESTING
+    db: DatabaseSession,
+    # Parameters WITH defaults come LAST:
+    name: str = Form(...),
+    age: int = Form(...),
+    gender: str = Form(...),
+    interests: str = Form("[]"),
+    personality_traits: str = Form("[]"),
+    fears_or_challenges: str = Form(None),
+    favorite_things: str = Form(None),
+    family_members: str = Form("[]"),
+    comfort_items: str = Form("[]"),
+    photos: List[UploadFile] = File(default=[])
+):
+    """Handle POST to /api/v1/sunshines (without trailing slash)"""
+    # Call the main create_sunshine function with all parameters
+    return await create_sunshine(
+        db, name, age, gender, interests, personality_traits,
+        fears_or_challenges, favorite_things, family_members,
+        comfort_items, photos
+    )
+
+
 @router.get("/", response_model=List[SunshineSummary])
 async def get_my_sunshines(
     current_user: CurrentUser,
