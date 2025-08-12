@@ -4,7 +4,6 @@ Sunshine profile API routes with comprehensive CRUD operations
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException, status, Depends, UploadFile, File, Form
 from fastapi.responses import JSONResponse
-import json
 
 from app.core.dependencies import CurrentUser, DatabaseSession
 from app.services.sunshine_service import sunshine_service
@@ -24,93 +23,22 @@ router = APIRouter()
 
 @router.post("/", response_model=SunshineResponse)
 async def create_sunshine(
+    sunshine_data: SunshineCreate,
     current_user: CurrentUser,
-    db: DatabaseSession,
-    name: str = Form(...),
-    age: int = Form(...),
-    gender: str = Form(...),
-    interests: str = Form("[]"),
-    personality_traits: str = Form("[]"),
-    fears_or_challenges: str = Form(None),
-    favorite_things: str = Form(None),
-    family_members: str = Form("[]"),
-    comfort_items: str = Form("[]"),
-    photos: List[UploadFile] = File(default=[])
+    db: DatabaseSession
 ):
     """Create a new Sunshine profile"""
     try:
-        # Parse JSON strings from form data
-        interests_list = json.loads(interests) if interests and interests != "[]" else []
-        traits_list = json.loads(personality_traits) if personality_traits and personality_traits != "[]" else []
-        family_list = json.loads(family_members) if family_members and family_members != "[]" else []
-        comfort_list = json.loads(comfort_items) if comfort_items and comfort_items != "[]" else []
-        
-        # Create SunshineCreate object from form data
-        sunshine_data = SunshineCreate(
-            name=name,
-            age=age,
-            gender=gender,
-            interests=interests_list,
-            personality_traits=traits_list,
-            fears_or_challenges=fears_or_challenges,
-            favorite_things=favorite_things,
-            family_members=family_list,
-            comfort_items=comfort_list
-        )
-        
-        # Create the sunshine profile
         sunshine = sunshine_service.create_sunshine(
             db=db,
             user_id=current_user.id,
             sunshine_data=sunshine_data
         )
-        
-        # Handle photo uploads if any
-        if photos and len(photos) > 0:
-            for i, photo in enumerate(photos):
-                if photo.filename:  # Only process if there's actually a file
-                    try:
-                        # Upload photo
-                        photo_url, thumbnail_url = await file_upload_service.upload_profile_photo(
-                            file=photo,
-                            user_id=current_user.id,
-                            sunshine_id=sunshine.id
-                        )
-                        
-                        # Save to database
-                        photo_data = PhotoCreate(
-                            photo_type="profile" if i == 0 else "gallery",
-                            is_primary=i == 0  # First photo is primary
-                        )
-                        
-                        sunshine_service.add_photo(
-                            db=db,
-                            sunshine_id=sunshine.id,
-                            user_id=current_user.id,
-                            photo_url=photo_url,
-                            thumbnail_url=thumbnail_url,
-                            photo_data=photo_data
-                        )
-                    except Exception as photo_error:
-                        # Log photo upload error but don't fail the entire profile creation
-                        print(f"Photo upload failed: {photo_error}")
-        
         return SunshineResponse.from_orm_model(sunshine)
-        
-    except json.JSONDecodeError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid JSON in form data: {str(e)}"
-        )
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Profile creation failed: {str(e)}"
         )
 
 
@@ -376,7 +304,7 @@ async def add_family_member(
             user_id=current_user.id,
             member_data=member_data
         )
-        return FamilyMemberResponse.model_validate(family_member)
+        return FamilyMemberResponse.from_orm_model(family_member)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -430,7 +358,7 @@ async def delete_family_member(
     return {"message": "Family member deleted successfully"}
 
 
-@router.post("/family/{member_id}/photo", response_model=PhotoResponse)
+@router.post("/family/{member_id}/photos/upload", response_model=PhotoResponse)
 async def upload_family_member_photo(
     member_id: str,
     current_user: CurrentUser,
@@ -439,8 +367,15 @@ async def upload_family_member_photo(
     description: Optional[str] = Form(None)
 ):
     """Upload a photo for a family member"""
-    # Verify family member belongs to user
-    family_member = sunshine_service.get_family_member(db, member_id, current_user.id)
+    # Get family member and verify ownership
+    from app.models.database_models import FamilyMember, Sunshine
+    family_member = db.query(FamilyMember).join(
+        Sunshine
+    ).filter(
+        FamilyMember.id == member_id,
+        Sunshine.user_id == current_user.id
+    ).first()
+    
     if not family_member:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -552,7 +487,7 @@ async def delete_comfort_item(
     return {"message": "Comfort item deleted successfully"}
 
 
-@router.post("/comfort-items/{item_id}/photo", response_model=PhotoResponse)
+@router.post("/comfort-items/{item_id}/photos/upload", response_model=PhotoResponse)
 async def upload_comfort_item_photo(
     item_id: str,
     current_user: CurrentUser,
@@ -561,8 +496,15 @@ async def upload_comfort_item_photo(
     description: Optional[str] = Form(None)
 ):
     """Upload a photo for a comfort item"""
-    # Verify comfort item belongs to user
-    comfort_item = sunshine_service.get_comfort_item(db, item_id, current_user.id)
+    # Get comfort item and verify ownership
+    from app.models.database_models import ComfortItem, Sunshine
+    comfort_item = db.query(ComfortItem).join(
+        Sunshine
+    ).filter(
+        ComfortItem.id == item_id,
+        Sunshine.user_id == current_user.id
+    ).first()
+    
     if not comfort_item:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
