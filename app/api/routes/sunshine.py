@@ -2,13 +2,14 @@
 Sunshine profile API routes with comprehensive CRUD operations
 """
 from typing import List, Optional
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime, timezone
 from fastapi import APIRouter, HTTPException, status, Depends, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 import json
 import logging
 
 from app.core.dependencies import CurrentUser, DatabaseSession
+from app.models.database_models import User
 from app.services.sunshine_service import sunshine_service
 from app.services.file_upload_service import file_upload_service
 from app.schemas.sunshine import (
@@ -130,6 +131,24 @@ async def create_sunshine(
         
         # Create the sunshine profile
         test_user_id = "test-user-id-12345"  # TEMPORARILY HARDCODED FOR TESTING
+        
+        # TEMP: Create test user if it doesn't exist
+        test_user = db.query(User).filter(User.id == test_user_id).first()
+        if not test_user:
+            print(f"Creating test user: {test_user_id}")
+            test_user = User(
+                id=test_user_id,
+                email="test@example.com",
+                full_name="Test User",
+                is_active=True,
+                created_at=datetime.now(timezone.utc)
+            )
+            db.add(test_user)
+            db.commit()
+            print(f"Test user created successfully")
+        else:
+            print(f"Test user already exists: {test_user_id}")
+        
         print(f"DEBUG: Calling sunshine_service.create_sunshine for user_id: {test_user_id}")
         sunshine = sunshine_service.create_sunshine(
             db=db,
