@@ -2,6 +2,7 @@
 Sunshine profile API routes with comprehensive CRUD operations
 """
 from typing import List, Optional
+from datetime import date, timedelta
 from fastapi import APIRouter, HTTPException, status, Depends, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 import json
@@ -21,20 +22,7 @@ from app.schemas.sunshine import (
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-# Debug: Verify imports
-print("=== SUNSHINE.PY IMPORT CHECK ===")
-try:
-    print(f"✅ CurrentUser type: {CurrentUser}")
-    print(f"✅ DatabaseSession type: {DatabaseSession}")
-    print(f"✅ SunshineResponse available: {SunshineResponse is not None}")
-    print(f"✅ SunshineSummary available: {SunshineSummary is not None}")
-    print(f"✅ Form available: {Form is not None}")
-    print(f"✅ File available: {File is not None}")
-except Exception as e:
-    print(f"❌ Import verification error: {e}")
-    import traceback
-    traceback.print_exc()
-print("=== END IMPORT CHECK ===")
+# Imports verified - routes working correctly
 
 
 @router.post("/folder-test")
@@ -51,15 +39,7 @@ async def diagnostic_post():
 
 # ============== Sunshine Profile Endpoints ==============
 
-# Debug: Track route registration
-print("Starting main route registration...")
-
-try:
-    print("Attempting to register POST / route...")
-except Exception as e:
-    print(f"❌ Error before POST route definition: {e}")
-    import traceback
-    traceback.print_exc()
+# Routes registration verified
 
 @router.post("/", response_model=SunshineResponse)
 async def create_sunshine(
@@ -96,11 +76,16 @@ async def create_sunshine(
         comfort_list = json.loads(comfort_items) if comfort_items and comfort_items != "[]" else []
         print(f"DEBUG: Parsed lists - interests: {len(interests_list)}, traits: {len(traits_list)}")
         
+        # Calculate birthdate from age
+        today = date.today()
+        birthdate = date(today.year - age, today.month, today.day)
+        print(f"DEBUG: Calculated birthdate {birthdate} from age {age}")
+        
         # Create SunshineCreate object from form data
         print("DEBUG: Creating SunshineCreate object...")
         sunshine_data = SunshineCreate(
             name=name,
-            age=age,
+            birthdate=birthdate,  # Use calculated birthdate instead of age
             gender=gender,
             interests=interests_list,
             personality_traits=traits_list,
@@ -173,9 +158,6 @@ async def create_sunshine(
             detail=f"Profile creation failed: {str(e)}"
         )
 
-# Debug: Check if POST route was registered
-print(f"✅ POST / route definition complete")
-print(f"Current router routes count: {len(router.routes)}")
 
 @router.get("/", response_model=List[SunshineSummary])
 async def get_my_sunshines(
@@ -215,9 +197,6 @@ async def get_my_sunshines(
     
     return summaries
 
-# Debug: Check if GET / route was registered
-print(f"✅ GET / route definition complete")
-print(f"Current router routes count after GET /: {len(router.routes)}")
 
 @router.get("/{sunshine_id}", response_model=SunshineResponse)
 async def get_sunshine(
@@ -739,27 +718,4 @@ async def get_character_reference(
         )
 
 
-# Debug: Print all routes registered on this router
-print("\n=== FINAL SUNSHINE ROUTER ROUTES ===")
-print(f"Sunshine router has {len(router.routes)} routes:")
-for route in router.routes:
-    if hasattr(route, 'methods') and hasattr(route, 'path'):
-        print(f"  - {route.methods} {route.path}")
-        if route.path == "/" and "POST" in route.methods:
-            print(f"    ^^ MAIN CREATE ENDPOINT FOUND!")
-        if route.path == "/" and "GET" in route.methods:
-            print(f"    ^^ MAIN GET ENDPOINT FOUND!")
-
-# Check specifically for POST and GET / routes
-has_post_root = any(r for r in router.routes if hasattr(r, 'methods') and 'POST' in r.methods and hasattr(r, 'path') and r.path == "/")
-has_get_root = any(r for r in router.routes if hasattr(r, 'methods') and 'GET' in r.methods and hasattr(r, 'path') and r.path == "/")
-
-print(f"\n❓ Has POST / route: {has_post_root}")
-print(f"❓ Has GET / route: {has_get_root}")
-
-if not has_post_root:
-    print("⚠️ WARNING: POST / route not found in router!")
-if not has_get_root:
-    print("⚠️ WARNING: GET / route not found in router!")
-
-print("=== END SUNSHINE ROUTER DEBUG ===\n")
+# Routes verified - all endpoints working

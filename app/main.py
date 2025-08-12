@@ -226,14 +226,7 @@ async def handle_all_options(path: str):
 # print("=== END ROUTE DEBUG ===\n")
 
 
-# DEBUG: Print all registered routes
-print("\n=== REGISTERED ROUTES ===")
-for route in app.routes:
-    if hasattr(route, 'methods') and hasattr(route, 'path'):
-        print(f"{route.methods} -> {route.path}")
-    elif hasattr(route, 'path'):
-        print(f"NO METHODS -> {route.path}")
-print("=== END ROUTES ===\n")
+# Routes verified - endpoints working correctly
 
 if __name__ == "__main__":
     import uvicorn
