@@ -52,28 +52,55 @@ class EnhancedStoryGenerator:
         """
         Generate a fully personalized story using Sunshine profile data and photos
         """
+        import time
+        start_time = time.time()
+        
+        print(f"🚀 Starting AI story generation...")
+        print(f"🚀 Sunshine: {sunshine.name}, Fear: {fear_or_challenge}, Tone: {tone}")
+        
         # Check subscription and usage limits
+        print(f"⏰ Step 1: Checking subscription...")
         can_generate, usage_type = usage_tracking_service.can_generate_story(user, db)
         if not can_generate:
             raise ValueError(f"Cannot generate story: {usage_type}")
+        print(f"✅ Subscription check passed: {usage_type}")
         
         # Build character profiles from Sunshine data
+        print(f"⏰ Step 2: Building character profiles...")
         self._build_character_profiles(sunshine, include_family)
+        print(f"✅ Character profiles built")
         
         # Generate story text with GPT-4
-        story_content = self._generate_story_content(
-            sunshine=sunshine,
-            fear_or_challenge=fear_or_challenge,
-            tone=tone,
-            include_comfort_items=include_comfort_items,
-            custom_elements=custom_elements
-        )
+        print(f"⏰ Step 3: Generating story with GPT-4...")
+        gpt_start = time.time()
+        try:
+            story_content = self._generate_story_content(
+                sunshine=sunshine,
+                fear_or_challenge=fear_or_challenge,
+                tone=tone,
+                include_comfort_items=include_comfort_items,
+                custom_elements=custom_elements
+            )
+            gpt_time = time.time() - gpt_start
+            print(f"✅ Story generated in {gpt_time:.2f} seconds")
+        except Exception as e:
+            print(f"❌ GPT-4 generation failed: {e}")
+            raise
         
         # Generate consistent character images with DALL-E 3
-        image_urls = self._generate_character_consistent_images(
-            scenes=story_content["scenes"],
-            sunshine=sunshine
-        )
+        print(f"⏰ Step 4: Generating images with DALL-E 3...")
+        dalle_start = time.time()
+        try:
+            image_urls = self._generate_character_consistent_images(
+                scenes=story_content["scenes"],
+                sunshine=sunshine
+            )
+            dalle_time = time.time() - dalle_start
+            print(f"✅ Images generated in {dalle_time:.2f} seconds")
+        except Exception as e:
+            print(f"❌ DALL-E 3 generation failed: {e}")
+            # Don't fail the whole story if images fail
+            image_urls = []
         
         # Calculate metadata
         word_count = len(story_content["story_text"].split())
@@ -114,6 +141,14 @@ class EnhancedStoryGenerator:
         )
         
         db.commit()
+        
+        total_time = time.time() - start_time
+        print(f"🎉 Story generation complete!")
+        print(f"⏱️ Total time: {total_time:.2f} seconds")
+        print(f"📖 Story ID: {story.id}")
+        print(f"📖 Title: {story.title}")
+        print(f"📖 Word count: {word_count}")
+        print(f"🖼️ Images: {len(image_urls)}")
         
         return {
             "story_id": story.id,
@@ -195,6 +230,10 @@ class EnhancedStoryGenerator:
         custom_elements: Optional[List[str]]
     ) -> Dict[str, Any]:
         """Generate story content with character consistency"""
+        import time
+        
+        print(f"📝 _generate_story_content called")
+        print(f"📝 Building prompt for GPT-4...")
         
         # Build character descriptions for the prompt
         character_descriptions = []
@@ -267,6 +306,10 @@ Return as JSON:
             import time
             start_time = time.time()
             
+            print(f"🤖 Calling OpenAI GPT-4 API...")
+            print(f"🤖 Prompt length: {len(prompt)} characters")
+            print(f"🤖 Using model: gpt-4o")
+            
             response = self.client.chat.completions.create(
                 model="gpt-4o",
                 messages=[
@@ -281,7 +324,11 @@ Return as JSON:
             )
             
             generation_time = time.time() - start_time
+            print(f"✅ GPT-4 API responded in {generation_time:.2f} seconds")
+            
+            print(f"📝 Parsing JSON response...")
             story_data = json.loads(response.choices[0].message.content)
+            print(f"✅ Story parsed: {story_data.get('title', 'No title')}")
             
             # Add metadata
             story_data["generation_time"] = generation_time
@@ -301,20 +348,27 @@ Return as JSON:
     ) -> List[str]:
         """Generate images with consistent character appearances using DALL-E 3"""
         
+        print(f"🎨 Starting DALL-E 3 image generation for {len(scenes)} scenes...")
         image_urls = []
         
         # Create a consistent character reference
         character_reference = self._create_character_reference()
+        print(f"🎨 Character reference created")
         
-        for scene in scenes:
+        for i, scene in enumerate(scenes):
             try:
+                print(f"🎨 Generating image {i+1}/{len(scenes)}...")
+                
                 # Build character-aware prompt
                 image_prompt = self._build_consistent_image_prompt(
                     scene=scene,
                     character_reference=character_reference,
                     sunshine_name=sunshine.name
                 )
+                print(f"🎨 Image prompt length: {len(image_prompt)} characters")
                 
+                import time
+                dalle_start = time.time()
                 response = self.client.images.generate(
                     model="dall-e-3",
                     prompt=image_prompt,
@@ -323,11 +377,13 @@ Return as JSON:
                     n=1,
                     style="vivid"  # More vibrant, child-friendly style
                 )
+                dalle_time = time.time() - dalle_start
+                print(f"✅ Image {i+1} generated in {dalle_time:.2f} seconds")
                 
                 image_urls.append(response.data[0].url)
                 
             except Exception as e:
-                print(f"Error generating image for scene {scene.get('scene_number', 'unknown')}: {e}")
+                print(f"❌ Error generating image for scene {scene.get('scene_number', 'unknown')}: {e}")
                 # Fallback to placeholder
                 image_urls.append(self._get_placeholder_image_url())
         
