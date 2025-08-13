@@ -150,7 +150,23 @@ class EnhancedStoryGenerator:
             usage_type=usage_type
         )
         
+        # ENSURE COMMIT AND REFRESH
         db.commit()
+        db.refresh(story)
+        
+        # VERIFY SAVE
+        print(f"✅ STORY SAVED TO DATABASE:")
+        print(f"  📖 Story ID: {story.id}")
+        print(f"  👤 User ID: {story.user_id}")
+        print(f"  ☀️ Sunshine ID: {story.sunshine_id}")
+        print(f"  📚 Title: {story.title}")
+        
+        # Double-check it's in the database
+        verify_story = db.query(Story).filter(Story.id == story.id).first()
+        if verify_story:
+            print(f"✅ VERIFIED: Story {story.id} is in database")
+        else:
+            print(f"❌ ERROR: Story {story.id} NOT found after save!")
         
         total_time = time.time() - start_time
         print(f"🎉 Story generation complete!")
