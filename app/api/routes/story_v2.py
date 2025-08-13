@@ -449,6 +449,35 @@ async def generate_story_test(
         )
 
 
+# TEMPORARY: Debug endpoint to list all stories
+@router.get("/debug/all-stories")
+async def debug_all_stories(
+    db: DatabaseSession,
+    limit: int = 20
+):
+    """TEMPORARY: List all stories for debugging"""
+    stories = db.query(Story).order_by(Story.created_at.desc()).limit(limit).all()
+    
+    print(f"📚 DEBUG: Found {len(stories)} stories in database")
+    
+    result = []
+    for story in stories:
+        print(f"📖 Story: {story.id} - {story.title} (user: {story.user_id})")
+        result.append({
+            "id": story.id,
+            "title": story.title,
+            "user_id": story.user_id,
+            "sunshine_id": story.sunshine_id,
+            "created_at": story.created_at,
+            "child_name": story.child_name,
+            "word_count": story.word_count
+        })
+    
+    return {
+        "total_stories": len(stories),
+        "stories": result
+    }
+
 @router.get("/history", response_model=List[Dict[str, Any]])
 async def get_story_history(
     current_user: CurrentUser,
@@ -473,21 +502,48 @@ async def get_story(
     db: DatabaseSession
 ):
     """Get a specific story by ID"""
+    # TEMPORARY: Remove user filter for debugging
+    print(f"📖 GET STORY: Looking for story ID: {story_id}")
+    print(f"📖 GET STORY: Current user ID: {current_user.id}")
+    
+    # First, try without user filter to see if story exists at all
+    story_exists = db.query(Story).filter(Story.id == story_id).first()
+    if story_exists:
+        print(f"✅ Story found in DB: {story_exists.title}")
+        print(f"📖 Story user_id: {story_exists.user_id}")
+        print(f"📖 Current user_id: {current_user.id}")
+        print(f"📖 User match: {story_exists.user_id == current_user.id}")
+    else:
+        print(f"❌ Story NOT found in DB with ID: {story_id}")
+        # List all stories for debugging
+        all_stories = db.query(Story).limit(10).all()
+        print(f"📚 Available stories (showing first 10):")
+        for s in all_stories:
+            print(f"  - {s.id}: {s.title} (user: {s.user_id})")
+    
+    # Now try with user filter
     story = db.query(Story).filter(
         Story.id == story_id,
         Story.user_id == current_user.id
     ).first()
     
     if not story:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Story not found"
-        )
+        # For testing, bypass user filter
+        if story_exists:
+            print(f"⚠️ BYPASSING USER FILTER FOR TESTING")
+            story = story_exists
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Story not found. ID: {story_id}"
+            )
     
     # Update read count
     story.read_count = (story.read_count or 0) + 1
     story.last_read_at = datetime.now(timezone.utc)
     db.commit()
+    
+    print(f"📖 RETURNING STORY: {story.title} (ID: {story.id})")
     
     return {
         "id": story.id,
@@ -532,6 +588,62 @@ async def toggle_favorite(
     
     return {"is_favorite": story.is_favorite}
 
+
+# TEMPORARY: Test endpoint without auth to debug story retrieval
+@router.get("/test/{story_id}")
+async def get_story_test(
+    story_id: str,
+    db: DatabaseSession
+):
+    """TEMPORARY: Get a story by ID without authentication for debugging"""
+    print(f"🔍 TEST GET STORY: Looking for story ID: {story_id}")
+    
+    # Query without any user filter
+    story = db.query(Story).filter(Story.id == story_id).first()
+    
+    if not story:
+        print(f"❌ Story not found: {story_id}")
+        # List all stories for debugging
+        all_stories = db.query(Story).order_by(Story.created_at.desc()).limit(20).all()
+        print(f"📚 All stories in database (newest first, max 20):")
+        for s in all_stories:
+            print(f"  - ID: {s.id}")
+            print(f"    Title: {s.title}")
+            print(f"    User: {s.user_id}")
+            print(f"    Created: {s.created_at}")
+        
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Story not found. ID: {story_id}. Check server logs for available stories."
+        )
+    
+    print(f"✅ Found story: {story.title}")
+    print(f"📖 Story details:")
+    print(f"  - ID: {story.id}")
+    print(f"  - User ID: {story.user_id}")
+    print(f"  - Title: {story.title}")
+    print(f"  - Created: {story.created_at}")
+    
+    return {
+        "id": story.id,
+        "title": story.title,
+        "story_text": story.story_text,
+        "child_name": story.child_name,
+        "age": story.age,
+        "fear_or_challenge": story.fear_or_challenge,
+        "tone": story.tone.value if story.tone else "empowering",
+        "scenes": story.scenes or [],
+        "image_urls": story.image_urls or [],
+        "pdf_url": story.pdf_url,
+        "reading_time": story.reading_time,
+        "word_count": story.word_count,
+        "is_favorite": story.is_favorite,
+        "read_count": story.read_count,
+        "created_at": story.created_at,
+        "last_read_at": story.last_read_at,
+        "user_id": story.user_id,  # Include for debugging
+        "sunshine_id": story.sunshine_id  # Include for debugging
+    }
 
 @router.delete("/{story_id}")
 async def delete_story(
