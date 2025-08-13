@@ -105,6 +105,7 @@ async def generate_story_with_photos(
             self.is_admin = False  # Regular user
             self.created_at = datetime.now(timezone.utc) - timedelta(days=30)
             self.last_login = datetime.now(timezone.utc)
+            self.sunshines = []  # CRITICAL: Needed for story save!
     
     mock_user = MockUser()
     
@@ -393,6 +394,7 @@ async def generate_story_with_photos_test(
             self.is_admin = False  # Regular user
             self.created_at = datetime.now(timezone.utc) - timedelta(days=30)
             self.last_login = datetime.now(timezone.utc)
+            self.sunshines = []  # CRITICAL: Needed for story save!
     
     mock_user = MockUser()
     

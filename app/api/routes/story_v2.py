@@ -127,6 +127,7 @@ async def generate_story_form(
             self.is_admin = False
             self.created_at = datetime.now(timezone) - timedelta(days=30)
             self.last_login = datetime.now(timezone)
+            self.sunshines = []  # CRITICAL: Needed for story save!
     
     mock_user = MockUser()
     
@@ -251,6 +252,7 @@ async def generate_story(
             self.is_admin = False
             self.created_at = datetime.now(timezone) - timedelta(days=30)
             self.last_login = datetime.now(timezone)
+            self.sunshines = []  # CRITICAL: Needed for story save!
     
     current_user = MockUser()  # Use mock user instead of real auth
     # Get Sunshine profile first
@@ -364,6 +366,7 @@ async def generate_story_test(
             self.is_admin = False
             self.created_at = datetime.now(timezone) - timedelta(days=30)
             self.last_login = datetime.now(timezone)
+            self.sunshines = []  # CRITICAL: Needed for story save!
     
     mock_user = MockUser()
     
