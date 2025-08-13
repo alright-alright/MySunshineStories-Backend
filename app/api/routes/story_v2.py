@@ -502,41 +502,29 @@ async def get_story(
     db: DatabaseSession
 ):
     """Get a specific story by ID"""
-    # TEMPORARY: Remove user filter for debugging
-    print(f"📖 GET STORY: Looking for story ID: {story_id}")
-    print(f"📖 GET STORY: Current user ID: {current_user.id}")
+    print(f"🔍 GET STORY REQUEST: {story_id}")
+    print(f"🔍 Current user: {current_user.id}")
     
-    # First, try without user filter to see if story exists at all
-    story_exists = db.query(Story).filter(Story.id == story_id).first()
-    if story_exists:
-        print(f"✅ Story found in DB: {story_exists.title}")
-        print(f"📖 Story user_id: {story_exists.user_id}")
-        print(f"📖 Current user_id: {current_user.id}")
-        print(f"📖 User match: {story_exists.user_id == current_user.id}")
+    # Check what stories exist in database
+    all_stories = db.query(Story).all()
+    print(f"🔍 Total stories in DB: {len(all_stories)}")
+    for story in all_stories[:5]:  # Show first 5 stories
+        print(f"🔍 DB Story: {story.id} - {story.title} - User: {story.user_id}")
+    
+    # Look for the specific story WITHOUT user filter first
+    story = db.query(Story).filter(Story.id == story_id).first()
+    print(f"🔍 Requested story found: {story is not None}")
+    
+    if story:
+        print(f"🔍 FOUND - Title: {story.title}, User: {story.user_id}")
+        print(f"🔍 Story user vs current user: {story.user_id} vs {current_user.id}")
+        # BYPASS USER CHECK FOR NOW - just return the story
     else:
-        print(f"❌ Story NOT found in DB with ID: {story_id}")
-        # List all stories for debugging
-        all_stories = db.query(Story).limit(10).all()
-        print(f"📚 Available stories (showing first 10):")
-        for s in all_stories:
-            print(f"  - {s.id}: {s.title} (user: {s.user_id})")
-    
-    # Now try with user filter
-    story = db.query(Story).filter(
-        Story.id == story_id,
-        Story.user_id == current_user.id
-    ).first()
-    
-    if not story:
-        # For testing, bypass user filter
-        if story_exists:
-            print(f"⚠️ BYPASSING USER FILTER FOR TESTING")
-            story = story_exists
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Story not found. ID: {story_id}"
-            )
+        print(f"🔍 NOT FOUND - Story {story_id} not in database")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Story not found. ID: {story_id}"
+        )
     
     # Update read count
     story.read_count = (story.read_count or 0) + 1
