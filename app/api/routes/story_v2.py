@@ -105,6 +105,7 @@ async def generate_story_form(
             self.stories_limit = 999
             self.stories_used = 0
             self.stories_remaining = 999
+            self.sunshines_limit = 999  # CRITICAL: Needed for save!
             # Fields needed for FREE tier validation
             self.individual_story_credits = 10
             self.stories_per_month = 5
@@ -230,6 +231,7 @@ async def generate_story(
             self.stories_limit = 999
             self.stories_used = 0
             self.stories_remaining = 999
+            self.sunshines_limit = 999  # CRITICAL: Needed for save!
             # Fields needed for FREE tier validation
             self.individual_story_credits = 10
             self.stories_per_month = 5
@@ -344,6 +346,7 @@ async def generate_story_test(
             self.stories_limit = 999
             self.stories_used = 0
             self.stories_remaining = 999
+            self.sunshines_limit = 999  # CRITICAL: Needed for save!
             # Fields needed for FREE tier validation
             self.individual_story_credits = 10
             self.stories_per_month = 5

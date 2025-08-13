@@ -76,6 +76,7 @@ async def generate_story_with_photos(
             self.stories_limit = 999
             self.stories_used = 0  # No stories used yet
             self.stories_remaining = 999  # Full capacity
+            self.sunshines_limit = 999  # CRITICAL: Needed for save!
             
             # Fields needed for FREE tier validation
             self.individual_story_credits = 10  # Some free credits
@@ -365,6 +366,7 @@ async def generate_story_with_photos_test(
             self.stories_limit = 999
             self.stories_used = 0  # No stories used yet
             self.stories_remaining = 999  # Full capacity
+            self.sunshines_limit = 999  # CRITICAL: Needed for save!
             
             # Fields needed for FREE tier validation
             self.individual_story_credits = 10  # Some free credits

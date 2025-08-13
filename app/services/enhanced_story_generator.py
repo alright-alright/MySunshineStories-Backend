@@ -102,24 +102,34 @@ class EnhancedStoryGenerator:
             # Don't fail the whole story if images fail
             image_urls = []
         
-        # Calculate metadata
-        word_count = len(story_content["story_text"].split())
-        reading_time = max(1, word_count // 200)  # Assume 200 words per minute
+        # Calculate metadata safely
+        story_text = story_content.get("story_text", "")
+        word_count = len(story_text.split()) if story_text else 0
+        reading_time = max(1, word_count // 200) if word_count > 0 else 1
+        
+        # Log what we're about to save
+        print(f"📚 PREPARING TO SAVE STORY:")
+        print(f"  📖 Title: {story_content.get('title', 'NO TITLE')}")
+        print(f"  📖 Text length: {len(story_content.get('story_text', ''))} chars")
+        print(f"  📖 Scenes: {len(story_content.get('scenes', []))} scenes")
+        print(f"  🖼️ Images: {len(image_urls)} images")
+        print(f"  👤 User ID: {user.id}")
+        print(f"  ☀️ Sunshine ID: {sunshine.id}")
         
         # Create story record
         story = Story(
             id=str(uuid.uuid4()),
             user_id=user.id,
             sunshine_id=sunshine.id,
-            title=story_content["title"],
-            story_text=story_content["story_text"],
+            title=story_content.get("title", f"{sunshine.name}'s Story"),
+            story_text=story_content.get("story_text", ""),
             tone=tone,
             child_name=sunshine.name,
             age=self._calculate_age(sunshine.birthdate),
             fear_or_challenge=fear_or_challenge,
-            favorite_items=[item.name for item in sunshine.comfort_items] if include_comfort_items else [],
-            family_members={fm.name: fm.relation_type for fm in sunshine.family_members} if include_family else {},
-            scenes=story_content["scenes"],
+            favorite_items=[item.name for item in sunshine.comfort_items] if include_comfort_items and hasattr(sunshine, 'comfort_items') and sunshine.comfort_items else [],
+            family_members={fm.name: fm.relation_type for fm in sunshine.family_members} if include_family and hasattr(sunshine, 'family_members') and sunshine.family_members else {},
+            scenes=story_content.get("scenes", []),
             image_urls=image_urls,
             reading_time=reading_time,
             word_count=word_count,
@@ -469,8 +479,31 @@ Return as JSON:
             print(f"✅ GPT-4 API responded in {generation_time:.2f} seconds")
             
             print(f"📝 Parsing JSON response...")
-            story_data = json.loads(response.choices[0].message.content)
-            print(f"✅ Story parsed: {story_data.get('title', 'No title')}")
+            response_content = response.choices[0].message.content
+            print(f"📖 RAW RESPONSE (first 500 chars): {response_content[:500]}")
+            
+            try:
+                story_data = json.loads(response_content)
+                print(f"✅ Story parsed as JSON: {story_data.get('title', 'No title')}")
+            except json.JSONDecodeError as e:
+                print(f"⚠️ JSON parsing failed: {e}")
+                print(f"⚠️ Using fallback structure for plain text response")
+                # Create a fallback structure from plain text
+                story_data = {
+                    "title": f"{sunshine.name}'s Adventure",
+                    "story_text": response_content,
+                    "scenes": [
+                        {
+                            "scene_number": 1,
+                            "description": "Scene 1",
+                            "text": response_content[:500]
+                        }
+                    ],
+                    "key_message": "A wonderful story"
+                }
+            
+            print(f"📖 GENERATED STORY TITLE: {story_data.get('title', 'Unknown')}")
+            print(f"📖 STORY LENGTH: {len(story_data.get('story_text', ''))} characters")
             
             # Add metadata
             story_data["generation_time"] = generation_time
@@ -520,9 +553,11 @@ Return as JSON:
                     style="vivid"  # More vibrant, child-friendly style
                 )
                 dalle_time = time.time() - dalle_start
+                image_url = response.data[0].url
                 print(f"✅ Image {i+1} generated in {dalle_time:.2f} seconds")
+                print(f"🖼️ GENERATED IMAGE URL: {image_url[:100]}...")
                 
-                image_urls.append(response.data[0].url)
+                image_urls.append(image_url)
                 
             except Exception as e:
                 print(f"❌ Error generating image for scene {scene.get('scene_number', 'unknown')}: {e}")
