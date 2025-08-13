@@ -452,6 +452,51 @@ async def generate_story_test(
         )
 
 
+# SIMPLE DEBUG ENDPOINT - NO AUTH REQUIRED
+@router.get("/all")
+async def list_all_stories(db: DatabaseSession):
+    """List ALL stories in database for debugging"""
+    print(f"🔍 CHECKING DATABASE FOR ALL STORIES...")
+    
+    # Get total count
+    total_count = db.query(Story).count()
+    print(f"📊 TOTAL STORIES IN DATABASE: {total_count}")
+    
+    # Get first 20 stories
+    stories = db.query(Story).order_by(Story.created_at.desc()).limit(20).all()
+    
+    # Log each story
+    for s in stories:
+        print(f"📖 Story: {s.id} | {s.title} | User: {s.user_id} | Created: {s.created_at}")
+    
+    # If no stories, check if database is connected
+    if total_count == 0:
+        print(f"⚠️ NO STORIES IN DATABASE!")
+        print(f"⚠️ Checking database connection...")
+        try:
+            # Try a simple query to test connection
+            from app.models.database_models import User
+            user_count = db.query(User).count()
+            print(f"✅ Database connected. Users in DB: {user_count}")
+        except Exception as e:
+            print(f"❌ Database connection error: {e}")
+    
+    return {
+        "total_count": total_count,
+        "database_status": "connected" if total_count >= 0 else "error",
+        "stories": [
+            {
+                "id": s.id,
+                "title": s.title or "No Title",
+                "user_id": s.user_id,
+                "sunshine_id": s.sunshine_id,
+                "created_at": s.created_at.isoformat() if s.created_at else "Unknown",
+                "child_name": s.child_name or "Unknown",
+                "word_count": s.word_count or 0
+            } for s in stories
+        ]
+    }
+
 # TEMPORARY: Debug endpoint to list all stories
 @router.get("/debug/all-stories")
 async def debug_all_stories(
@@ -480,6 +525,85 @@ async def debug_all_stories(
         "total_stories": len(stories),
         "stories": result
     }
+
+# TEST DATABASE WRITE CAPABILITY
+@router.get("/test-db-write")
+async def test_database_write(db: DatabaseSession):
+    """Test if we can write to the database"""
+    import uuid
+    from datetime import datetime, timezone
+    
+    print(f"🔍 TESTING DATABASE WRITE...")
+    
+    try:
+        # Create a test story
+        test_id = f"test-{str(uuid.uuid4())[:8]}"
+        test_story = Story(
+            id=test_id,
+            user_id="test-user-db-check",
+            title=f"Test Story {datetime.now().isoformat()}",
+            story_text="This is a test story to verify database write capability.",
+            tone=StoryTone.EMPOWERING,
+            child_name="Test Child",
+            age=5,
+            fear_or_challenge="Testing database",
+            reading_time=1,
+            word_count=10,
+            created_at=datetime.now(timezone.utc)
+        )
+        
+        print(f"📝 Adding test story: {test_id}")
+        db.add(test_story)
+        
+        print(f"💾 Committing to database...")
+        db.commit()
+        
+        print(f"🔄 Refreshing object...")
+        db.refresh(test_story)
+        
+        print(f"✅ Test story saved: {test_story.id}")
+        
+        # Verify it's in the database
+        verify = db.query(Story).filter(Story.id == test_id).first()
+        
+        if verify:
+            print(f"✅ VERIFIED: Test story found in database")
+            # Clean up - delete test story
+            db.delete(verify)
+            db.commit()
+            print(f"🧹 Test story cleaned up")
+            
+            return {
+                "status": "SUCCESS",
+                "message": "Database write test successful",
+                "test_id": test_id,
+                "database_writable": True
+            }
+        else:
+            print(f"❌ Test story NOT found after save")
+            return {
+                "status": "FAILED",
+                "message": "Story saved but not found in database",
+                "test_id": test_id,
+                "database_writable": False
+            }
+            
+    except Exception as e:
+        print(f"❌ Database write test failed: {e}")
+        import traceback
+        print(traceback.format_exc())
+        
+        try:
+            db.rollback()
+        except:
+            pass
+            
+        return {
+            "status": "ERROR",
+            "message": str(e),
+            "error_type": type(e).__name__,
+            "database_writable": False
+        }
 
 @router.get("/history", response_model=List[Dict[str, Any]])
 async def get_story_history(
