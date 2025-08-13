@@ -166,17 +166,31 @@ class EnhancedStoryGenerator:
         """Build detailed character profiles from Sunshine data"""
         self.character_profiles.clear()
         
+        # Get main photo from photos relationship
+        main_photo_url = None
+        if hasattr(sunshine, 'photos') and sunshine.photos:
+            # Find primary photo or first profile photo
+            for photo in sunshine.photos:
+                if photo.is_primary or photo.photo_type == "profile":
+                    main_photo_url = photo.url
+                    break
+            # If no primary/profile photo, use first photo
+            if not main_photo_url and sunshine.photos:
+                main_photo_url = sunshine.photos[0].url
+        
+        print(f"📸 Main photo URL: {main_photo_url if main_photo_url else 'No photo found'}")
+        
         # Main character (child)
         main_character = CharacterProfile(
             name=sunshine.name,
             relationship="main character",
-            photo_path=sunshine.main_photo_url
+            photo_path=main_photo_url  # Can be None, that's OK
         )
         
         # Analyze main photo if available
-        if sunshine.main_photo_url and os.path.exists(sunshine.main_photo_url):
+        if main_photo_url and os.path.exists(main_photo_url):
             try:
-                with open(sunshine.main_photo_url, 'rb') as f:
+                with open(main_photo_url, 'rb') as f:
                     photo_bytes = f.read()
                     main_character.visual_description = self.photo_processor.analyze_photo(
                         photo_bytes, sunshine.name, "child"
