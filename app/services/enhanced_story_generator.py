@@ -499,12 +499,15 @@ REQUIREMENTS:
 6. Use simple, encouraging language appropriate for the child's age
 7. End with {sunshine.name} feeling proud and confident
 
+CRITICAL FORMATTING REQUIREMENT:
+Format the story_text with proper paragraph breaks using \\n\\n between paragraphs for readability. Each paragraph should be a distinct section of the story, typically 2-4 sentences long. This is essential for the frontend to properly display the story.
+
 IMPORTANT: Maintain exact character descriptions throughout for visual consistency.
 
 Return as JSON:
 {{
     "title": "Engaging, personalized title",
-    "story_text": "Complete story with paragraphs separated by \\n\\n",
+    "story_text": "Paragraph 1 text here.\\n\\nParagraph 2 text here.\\n\\nParagraph 3 text here.\\n\\nParagraph 4 text here.\\n\\nParagraph 5 text here.",
     "scenes": [
         {{
             "scene_number": 1,
@@ -530,7 +533,7 @@ Return as JSON:
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are an expert children's story writer and child psychologist who creates therapeutic social stories. Always maintain character consistency and respond with valid JSON."
+                        "content": "You are an expert children's story writer and child psychologist who creates therapeutic social stories. Always maintain character consistency and respond with valid JSON. CRITICAL: Format story_text with \\n\\n between paragraphs (each paragraph 2-4 sentences). This is essential for proper frontend display."
                     },
                     {"role": "user", "content": prompt}
                 ],
