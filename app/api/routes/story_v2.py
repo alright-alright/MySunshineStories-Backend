@@ -33,7 +33,8 @@ class GenerateStoryRequest(BaseModel):
 
 class StoryGenerationResponse(BaseModel):
     """Response model for story generation"""
-    story_id: str
+    id: str  # Frontend expects 'id' field
+    story_id: str  # Also keep story_id for compatibility
     title: str
     story_text: str
     scenes: List[Dict[str, Any]]
@@ -166,6 +167,7 @@ async def generate_story_form(
         usage_stats = usage_tracking_service.get_usage_stats(mock_user, db)
         
         return StoryGenerationResponse(
+            id=result["story_id"],  # Frontend expects 'id'
             story_id=result["story_id"],
             title=result["title"],
             story_text=result["story_text"],
@@ -286,6 +288,7 @@ async def generate_story(
         usage_stats = usage_tracking_service.get_usage_stats(current_user, db)
         
         return StoryGenerationResponse(
+            id=result["story_id"],  # Frontend expects 'id'
             story_id=result["story_id"],
             title=result["title"],
             story_text=result["story_text"],
@@ -409,6 +412,7 @@ async def generate_story_test(
         usage_stats = usage_tracking_service.get_usage_stats(mock_user, db)
         
         return StoryGenerationResponse(
+            id=result["story_id"],  # Frontend expects 'id'
             story_id=result["story_id"],
             title=result["title"],
             story_text=result["story_text"],

@@ -20,7 +20,8 @@ router = APIRouter()
 
 class EnhancedStoryResponse(BaseModel):
     """Response model for enhanced story generation"""
-    story_id: str
+    id: str  # Frontend expects 'id' field
+    story_id: str  # Also keep story_id for compatibility
     title: str
     story_text: str
     scenes: List[Dict[str, Any]]
@@ -293,8 +294,9 @@ async def generate_story_with_photos_impl(
         print(f"  📖 story_id: {result.get('story_id')}")
         print(f"  📖 title: {result.get('title')}")
         
-        return EnhancedStoryResponse(
-            story_id=result["story_id"],
+        response = EnhancedStoryResponse(
+            id=result["story_id"],  # Frontend expects 'id'
+            story_id=result["story_id"],  # Also include story_id
             title=result["title"],
             story_text=result["story_text"],
             scenes=result["scenes"],
@@ -306,6 +308,14 @@ async def generate_story_with_photos_impl(
             character_profiles=result["character_profiles"],
             generation_quality=generation_quality
         )
+        
+        # Log the final response format
+        response_dict = response.dict() if hasattr(response, 'dict') else response
+        print(f"📤 FINAL RESPONSE FORMAT:")
+        print(f"  📖 id: {response_dict.get('id') if isinstance(response_dict, dict) else 'N/A'}")
+        print(f"  📖 story_id: {response_dict.get('story_id') if isinstance(response_dict, dict) else 'N/A'}")
+        
+        return response
         
     except ValueError as e:
         # This is a subscription/usage limit error
