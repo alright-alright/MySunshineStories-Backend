@@ -300,18 +300,19 @@ async def generate_story_with_photos_impl(
         print(f"  📖 story_id: {result.get('story_id')}")
         print(f"  📖 title: {result.get('title')}")
         
+        # ENSURE ALL FIELDS ARE SAFE FOR FRONTEND - NEVER None
         response = EnhancedStoryResponse(
-            id=result["story_id"],  # Frontend expects 'id'
-            story_id=result["story_id"],  # Also include story_id
-            title=result["title"],
-            story_text=result["story_text"],
-            scenes=result["scenes"],
-            image_urls=result["image_urls"],
-            reading_time=result["reading_time"],
-            word_count=result["word_count"],
-            usage_type=result["usage_type"],
+            id=result.get("story_id", ""),  # Frontend expects 'id'
+            story_id=result.get("story_id", ""),  # Also include story_id
+            title=result.get("title", "Untitled Story"),
+            story_text=result.get("story_text", ""),  # CRITICAL: Never None, always string
+            scenes=result.get("scenes", []),
+            image_urls=result.get("image_urls", []),
+            reading_time=result.get("reading_time", 5),
+            word_count=result.get("word_count", 0),
+            usage_type=result.get("usage_type", "free_tier"),
             credits_remaining=usage_stats.get("stories_remaining", 0),
-            character_profiles=result["character_profiles"],
+            character_profiles=result.get("character_profiles", {}),
             generation_quality=generation_quality
         )
         
@@ -616,20 +617,22 @@ async def get_story(
     
     print(f"✅ Found story: {story.title}")
     
+    # ENSURE ALL FIELDS ARE SAFE FOR FRONTEND
     return {
-        "story_id": story.id,
-        "title": story.title,
-        "story_text": story.story_text,
-        "child_name": story.child_name,
-        "age": story.age,
-        "fear_or_challenge": story.fear_or_challenge,
+        "id": story.id or "",  # Frontend might expect 'id'
+        "story_id": story.id or "",
+        "title": story.title or "Untitled Story",
+        "story_text": story.story_text or "",  # CRITICAL: Never None
+        "child_name": story.child_name or "",
+        "age": story.age or 0,
+        "fear_or_challenge": story.fear_or_challenge or "",
         "tone": story.tone.value if story.tone else "empowering",
         "scenes": story.scenes or [],
         "image_urls": story.image_urls or [],
-        "reading_time": story.reading_time,
-        "word_count": story.word_count,
-        "created_at": story.created_at,
-        "model_used": story.model_used
+        "reading_time": story.reading_time or 5,
+        "word_count": story.word_count or 0,
+        "created_at": story.created_at.isoformat() if story.created_at else "",
+        "model_used": story.model_used or "gpt-4o"
     }
 
 

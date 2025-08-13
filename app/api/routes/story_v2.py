@@ -166,16 +166,17 @@ async def generate_story_form(
         # Get usage stats
         usage_stats = usage_tracking_service.get_usage_stats(mock_user, db)
         
+        # ENSURE ALL FIELDS ARE SAFE FOR FRONTEND
         return StoryGenerationResponse(
-            id=result["story_id"],  # Frontend expects 'id'
-            story_id=result["story_id"],
-            title=result["title"],
-            story_text=result["story_text"],
-            scenes=result["scenes"],
-            image_urls=result["image_urls"],
-            reading_time=result["reading_time"],
-            word_count=result["word_count"],
-            usage_type=result["usage_type"],
+            id=result.get("story_id", ""),  # Frontend expects 'id'
+            story_id=result.get("story_id", ""),
+            title=result.get("title", "Untitled Story"),
+            story_text=result.get("story_text", ""),  # CRITICAL: Never None
+            scenes=result.get("scenes", []),
+            image_urls=result.get("image_urls", []),
+            reading_time=result.get("reading_time", 5),
+            word_count=result.get("word_count", 0),
+            usage_type=result.get("usage_type", "free_tier"),
             credits_remaining=usage_stats.get("stories_remaining", 0)
         )
         
@@ -287,16 +288,17 @@ async def generate_story(
         # Get updated usage stats
         usage_stats = usage_tracking_service.get_usage_stats(current_user, db)
         
+        # ENSURE ALL FIELDS ARE SAFE FOR FRONTEND
         return StoryGenerationResponse(
-            id=result["story_id"],  # Frontend expects 'id'
-            story_id=result["story_id"],
-            title=result["title"],
-            story_text=result["story_text"],
-            scenes=result["scenes"],
-            image_urls=result["image_urls"],
-            reading_time=result["reading_time"],
-            word_count=result["word_count"],
-            usage_type=result["usage_type"],
+            id=result.get("story_id", ""),  # Frontend expects 'id'
+            story_id=result.get("story_id", ""),
+            title=result.get("title", "Untitled Story"),
+            story_text=result.get("story_text", ""),  # CRITICAL: Never None
+            scenes=result.get("scenes", []),
+            image_urls=result.get("image_urls", []),
+            reading_time=result.get("reading_time", 5),
+            word_count=result.get("word_count", 0),
+            usage_type=result.get("usage_type", "free_tier"),
             credits_remaining=usage_stats.get("stories_remaining", 0)
         )
         
@@ -411,16 +413,17 @@ async def generate_story_test(
         # Get updated usage stats
         usage_stats = usage_tracking_service.get_usage_stats(mock_user, db)
         
+        # ENSURE ALL FIELDS ARE SAFE FOR FRONTEND
         return StoryGenerationResponse(
-            id=result["story_id"],  # Frontend expects 'id'
-            story_id=result["story_id"],
-            title=result["title"],
-            story_text=result["story_text"],
-            scenes=result["scenes"],
-            image_urls=result["image_urls"],
-            reading_time=result["reading_time"],
-            word_count=result["word_count"],
-            usage_type=result["usage_type"],
+            id=result.get("story_id", ""),  # Frontend expects 'id'
+            story_id=result.get("story_id", ""),
+            title=result.get("title", "Untitled Story"),
+            story_text=result.get("story_text", ""),  # CRITICAL: Never None
+            scenes=result.get("scenes", []),
+            image_urls=result.get("image_urls", []),
+            reading_time=result.get("reading_time", 5),
+            word_count=result.get("word_count", 0),
+            usage_type=result.get("usage_type", "free_tier"),
             credits_remaining=usage_stats.get("stories_remaining", 0)
         )
         
@@ -545,23 +548,24 @@ async def get_story(
     
     print(f"📖 RETURNING STORY: {story.title} (ID: {story.id})")
     
+    # ENSURE ALL FIELDS ARE NEVER None FOR FRONTEND
     return {
-        "id": story.id,
-        "title": story.title,
-        "story_text": story.story_text,
-        "child_name": story.child_name,
-        "age": story.age,
-        "fear_or_challenge": story.fear_or_challenge,
+        "id": story.id or "",
+        "title": story.title or "Untitled Story",
+        "story_text": story.story_text or "",  # CRITICAL: Must be string, not None
+        "child_name": story.child_name or "",
+        "age": story.age or 0,
+        "fear_or_challenge": story.fear_or_challenge or "",
         "tone": story.tone.value if story.tone else "empowering",
         "scenes": story.scenes or [],
         "image_urls": story.image_urls or [],
-        "pdf_url": story.pdf_url,
-        "reading_time": story.reading_time,
-        "word_count": story.word_count,
-        "is_favorite": story.is_favorite,
-        "read_count": story.read_count,
-        "created_at": story.created_at,
-        "last_read_at": story.last_read_at
+        "pdf_url": story.pdf_url or "",
+        "reading_time": story.reading_time or 5,
+        "word_count": story.word_count or 0,
+        "is_favorite": story.is_favorite or False,
+        "read_count": story.read_count or 0,
+        "created_at": story.created_at.isoformat() if story.created_at else "",
+        "last_read_at": story.last_read_at.isoformat() if story.last_read_at else None
     }
 
 
@@ -615,19 +619,20 @@ async def get_story_simple(
     
     print(f"✅ FOUND: {story.title} (user: {story.user_id})")
     
+    # ENSURE ALL FIELDS ARE NEVER None FOR FRONTEND
     return {
-        "id": story.id,
-        "title": story.title,
-        "story_text": story.story_text,
-        "child_name": story.child_name,
-        "age": story.age,
-        "fear_or_challenge": story.fear_or_challenge,
+        "id": story.id or "",
+        "title": story.title or "Untitled Story",
+        "story_text": story.story_text or "",  # CRITICAL: Must be string, not None
+        "child_name": story.child_name or "",
+        "age": story.age or 0,
+        "fear_or_challenge": story.fear_or_challenge or "",
         "tone": story.tone.value if story.tone else "empowering",
         "scenes": story.scenes or [],
         "image_urls": story.image_urls or [],
-        "reading_time": story.reading_time,
-        "word_count": story.word_count,
-        "created_at": story.created_at
+        "reading_time": story.reading_time or 5,
+        "word_count": story.word_count or 0,
+        "created_at": story.created_at.isoformat() if story.created_at else ""
     }
 
 # TEMPORARY: Test endpoint without auth to debug story retrieval
