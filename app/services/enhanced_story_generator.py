@@ -500,14 +500,16 @@ REQUIREMENTS:
 7. End with {sunshine.name} feeling proud and confident
 
 CRITICAL FORMATTING REQUIREMENT:
-Format the story_text with proper paragraph breaks using \\n\\n between paragraphs for readability. Each paragraph should be a distinct section of the story, typically 2-4 sentences long. This is essential for the frontend to properly display the story.
+Use exactly TWO newline characters (\\n\\n) between each paragraph in story_text. Do NOT use single \\n. Each paragraph should be 2-4 sentences. 
+Example format: 'Paragraph one text here.\\n\\nParagraph two text here.\\n\\nParagraph three text here.'
+This double newline (\\n\\n) format is ESSENTIAL - the frontend splits on \\n\\n to separate paragraphs.
 
 IMPORTANT: Maintain exact character descriptions throughout for visual consistency.
 
 Return as JSON:
 {{
     "title": "Engaging, personalized title",
-    "story_text": "Paragraph 1 text here.\\n\\nParagraph 2 text here.\\n\\nParagraph 3 text here.\\n\\nParagraph 4 text here.\\n\\nParagraph 5 text here.",
+    "story_text": "First paragraph with 2-3 sentences goes here.\\n\\nSecond paragraph with 2-3 sentences continues the story.\\n\\nThird paragraph develops the challenge.\\n\\nFourth paragraph shows progress.\\n\\nFinal paragraph with happy resolution.",
     "scenes": [
         {{
             "scene_number": 1,
@@ -533,7 +535,7 @@ Return as JSON:
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are an expert children's story writer and child psychologist who creates therapeutic social stories. Always maintain character consistency and respond with valid JSON. CRITICAL: Format story_text with \\n\\n between paragraphs (each paragraph 2-4 sentences). This is essential for proper frontend display."
+                        "content": "You are an expert children's story writer and child psychologist who creates therapeutic social stories. Always maintain character consistency and respond with valid JSON. CRITICAL: Use EXACTLY TWO newline characters (\\n\\n) between paragraphs in story_text. NEVER use single \\n for paragraph breaks. Only use \\n\\n. Each paragraph must be separated by \\n\\n for frontend parsing."
                     },
                     {"role": "user", "content": prompt}
                 ],
