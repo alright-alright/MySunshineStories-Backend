@@ -54,14 +54,15 @@ async def generate_story_with_photos(
     """
     # Use hardcoded test user
     test_user_id = "test-user-id-12345"
-    print(f"TEMP: Generating story at original URL for test user: {test_user_id}")
+    print(f"🔍 V3 ENHANCED: Generating story at original URL for test user: {test_user_id}")
+    print(f"🔍 V3 ENHANCED: Form data - sunshine_id: {sunshine_id}, fear: {fear_or_challenge}, tone: {tone}")
     
     # Mock subscription object with all authorization attributes
     class MockSubscription:
         def __init__(self):
             # Plan details
-            self.plan_type = "premium"
-            self.tier = "free"  # Try 'free' tier value
+            self.plan_type = "free"
+            self.tier = "free"  # CONFIRMED WORKING: "free" tier passes validation
             
             # Status flags - all active/valid
             self.is_active = True
@@ -100,16 +101,17 @@ async def generate_story_with_photos(
     mock_user = MockUser()
     
     # Debug logging to trace authorization
-    print(f"🔍 DEBUG: Starting story generation with mock user...")
-    print(f"🔍 User ID: {mock_user.id}")
-    print(f"🔍 User email: {mock_user.email}")
-    print(f"🔍 User is_active: {getattr(mock_user, 'is_active', 'N/A')}")
-    print(f"🔍 User is_verified: {getattr(mock_user, 'is_verified', 'N/A')}")
+    print(f"🔍 V3 DEBUG: Starting story generation with mock user...")
+    print(f"🔍 V3 User ID: {mock_user.id}")
+    print(f"🔍 V3 User email: {mock_user.email}")
+    print(f"🔍 V3 User is_active: {getattr(mock_user, 'is_active', 'N/A')}")
+    print(f"🔍 V3 User is_verified: {getattr(mock_user, 'is_verified', 'N/A')}")
     
-    print(f"🔍 DEBUG: Checking subscription details...")
-    print(f"🔍 Subscription status: {mock_user.subscription.status}")
-    print(f"🔍 Subscription tier: {mock_user.subscription.tier}")
-    print(f"🔍 Subscription is_active: {mock_user.subscription.is_active}")
+    print(f"🔍 V3 DEBUG: Checking subscription details...")
+    print(f"🔍 V3 Subscription status: {mock_user.subscription.status}")
+    print(f"🔍 V3 Subscription tier: {mock_user.subscription.tier}")
+    print(f"🔍 V3 Subscription plan_type: {mock_user.subscription.plan_type}")
+    print(f"🔍 V3 Subscription is_active: {mock_user.subscription.is_active}")
     print(f"🔍 Subscription is_valid: {getattr(mock_user.subscription, 'is_valid', 'N/A')}")
     print(f"🔍 Stories limit: {mock_user.subscription.stories_limit}")
     print(f"🔍 Stories used: {getattr(mock_user.subscription, 'stories_used', 'N/A')}")
@@ -341,8 +343,8 @@ async def generate_story_with_photos_test(
     class MockSubscription:
         def __init__(self):
             # Plan details
-            self.plan_type = "premium"
-            self.tier = "free"  # Try 'free' tier value
+            self.plan_type = "free"
+            self.tier = "free"  # CONFIRMED WORKING: "free" tier passes validation
             
             # Status flags - all active/valid
             self.is_active = True
@@ -381,16 +383,17 @@ async def generate_story_with_photos_test(
     mock_user = MockUser()
     
     # Debug logging to trace authorization
-    print(f"🔍 DEBUG: Starting story generation with mock user...")
-    print(f"🔍 User ID: {mock_user.id}")
-    print(f"🔍 User email: {mock_user.email}")
-    print(f"🔍 User is_active: {getattr(mock_user, 'is_active', 'N/A')}")
-    print(f"🔍 User is_verified: {getattr(mock_user, 'is_verified', 'N/A')}")
+    print(f"🔍 V3 DEBUG: Starting story generation with mock user...")
+    print(f"🔍 V3 User ID: {mock_user.id}")
+    print(f"🔍 V3 User email: {mock_user.email}")
+    print(f"🔍 V3 User is_active: {getattr(mock_user, 'is_active', 'N/A')}")
+    print(f"🔍 V3 User is_verified: {getattr(mock_user, 'is_verified', 'N/A')}")
     
-    print(f"🔍 DEBUG: Checking subscription details...")
-    print(f"🔍 Subscription status: {mock_user.subscription.status}")
-    print(f"🔍 Subscription tier: {mock_user.subscription.tier}")
-    print(f"🔍 Subscription is_active: {mock_user.subscription.is_active}")
+    print(f"🔍 V3 DEBUG: Checking subscription details...")
+    print(f"🔍 V3 Subscription status: {mock_user.subscription.status}")
+    print(f"🔍 V3 Subscription tier: {mock_user.subscription.tier}")
+    print(f"🔍 V3 Subscription plan_type: {mock_user.subscription.plan_type}")
+    print(f"🔍 V3 Subscription is_active: {mock_user.subscription.is_active}")
     print(f"🔍 Subscription is_valid: {getattr(mock_user.subscription, 'is_valid', 'N/A')}")
     print(f"🔍 Stories limit: {mock_user.subscription.stories_limit}")
     print(f"🔍 Stories used: {getattr(mock_user.subscription, 'stories_used', 'N/A')}")

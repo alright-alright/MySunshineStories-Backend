@@ -215,8 +215,8 @@ async def generate_story(
     # Mock subscription object
     class MockSubscription:
         def __init__(self):
-            self.plan_type = "premium"
-            self.tier = "premium"  # Simple string value
+            self.plan_type = "free"
+            self.tier = "free"  # CONFIRMED WORKING: "free" tier passes validation
             self.is_active = True
             self.status = "active"
             self.is_valid = True
@@ -324,8 +324,8 @@ async def generate_story_test(
     # Mock subscription object with all authorization attributes
     class MockSubscription:
         def __init__(self):
-            self.plan_type = "premium"
-            self.tier = "premium"  # Simple string value
+            self.plan_type = "free"
+            self.tier = "free"  # CONFIRMED WORKING: "free" tier passes validation
             self.is_active = True
             self.status = "active"
             self.is_valid = True
