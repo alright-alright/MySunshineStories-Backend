@@ -289,6 +289,10 @@ async def generate_story_with_photos_impl(
         # Get updated usage stats
         usage_stats = usage_tracking_service.get_usage_stats(current_user, db)
         
+        print(f"📤 V3 RETURNING STORY TO FRONTEND:")
+        print(f"  📖 story_id: {result.get('story_id')}")
+        print(f"  📖 title: {result.get('title')}")
+        
         return EnhancedStoryResponse(
             story_id=result["story_id"],
             title=result["title"],
@@ -557,6 +561,74 @@ async def get_story_templates(
         return templates[age_group]
     
     return templates
+
+
+# TEMPORARY: Simple endpoint to retrieve generated stories
+@router.get("/stories/{story_id}")
+async def get_story(
+    story_id: str,
+    db: DatabaseSession
+):
+    """
+    TEMPORARY: Get a story by ID without authentication
+    For testing generated stories
+    """
+    from app.models.database_models import Story
+    
+    print(f"📖 Fetching story: {story_id}")
+    
+    story = db.query(Story).filter(Story.id == story_id).first()
+    
+    if not story:
+        print(f"❌ Story not found: {story_id}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Story not found: {story_id}"
+        )
+    
+    print(f"✅ Found story: {story.title}")
+    
+    return {
+        "story_id": story.id,
+        "title": story.title,
+        "story_text": story.story_text,
+        "child_name": story.child_name,
+        "age": story.age,
+        "fear_or_challenge": story.fear_or_challenge,
+        "tone": story.tone.value if story.tone else "empowering",
+        "scenes": story.scenes or [],
+        "image_urls": story.image_urls or [],
+        "reading_time": story.reading_time,
+        "word_count": story.word_count,
+        "created_at": story.created_at,
+        "model_used": story.model_used
+    }
+
+
+# TEMPORARY: Get recent stories without auth
+@router.get("/stories/recent/test")
+async def get_recent_stories(
+    db: DatabaseSession,
+    limit: int = 10
+):
+    """
+    TEMPORARY: Get recent stories for testing
+    """
+    from app.models.database_models import Story
+    
+    stories = db.query(Story).order_by(Story.created_at.desc()).limit(limit).all()
+    
+    return [
+        {
+            "story_id": story.id,
+            "title": story.title,
+            "child_name": story.child_name,
+            "created_at": story.created_at,
+            "word_count": story.word_count,
+            "image_count": len(story.image_urls) if story.image_urls else 0
+        }
+        for story in stories
+    ]
 
 
 @router.get("/character-consistency-tips")

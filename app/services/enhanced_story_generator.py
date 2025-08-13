@@ -160,7 +160,8 @@ class EnhancedStoryGenerator:
         print(f"📖 Word count: {word_count}")
         print(f"🖼️ Images: {len(image_urls)}")
         
-        return {
+        # Build the response
+        response_data = {
             "story_id": story.id,
             "title": story.title,
             "story_text": story.story_text,
@@ -171,6 +172,14 @@ class EnhancedStoryGenerator:
             "usage_type": usage_type,
             "character_profiles": self._get_character_summaries()
         }
+        
+        print(f"📤 RETURNING RESPONSE TO FRONTEND:")
+        print(f"  📖 story_id: {response_data.get('story_id')}")
+        print(f"  📖 title: {response_data.get('title')}")
+        print(f"  📖 scenes: {len(response_data.get('scenes', []))}")
+        print(f"  🖼️ images: {len(response_data.get('image_urls', []))}")
+        
+        return response_data
     
     def _build_character_profiles(self, sunshine: Sunshine, include_family: bool = True):
         """Build detailed character profiles from Sunshine data"""
