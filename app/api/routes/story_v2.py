@@ -1,7 +1,7 @@
 """
 Story generation API routes with usage tracking and payment integration
 """
-from fastapi import APIRouter, HTTPException, status, Depends, Form
+from fastapi import APIRouter, HTTPException, status, Depends, Form, UploadFile, File
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone
@@ -46,17 +46,167 @@ class StoryGenerationResponse(BaseModel):
 
 # ============== Story Generation ==============
 
+# TEMPORARY: FormData version of generate endpoint for testing
+@router.post("/generate-form", response_model=StoryGenerationResponse)
+async def generate_story_form(
+    db: DatabaseSession,
+    sunshine_id: str = Form(...),
+    fear_or_challenge: str = Form(...),
+    tone: str = Form(default="empowering"),
+    include_family: bool = Form(default=True),
+    include_comfort_items: bool = Form(default=True),
+    custom_elements: Optional[str] = Form(default=None),
+    # Photo uploads (optional for v2)
+    additional_child_photos: List[UploadFile] = File(default=[]),
+    additional_family_photos: List[UploadFile] = File(default=[]),
+    comfort_item_photos: List[UploadFile] = File(default=[])
+):
+    """
+    TEMPORARY: FormData version of story generation for testing
+    Accepts multipart/form-data like v3 endpoint
+    """
+    from datetime import timedelta
+    
+    print("🔍 V2 FORM DATA:")
+    print(f"🔍 Sunshine ID: {sunshine_id}")
+    print(f"🔍 Fear/challenge: {fear_or_challenge}")
+    print(f"🔍 Tone: {tone}")
+    print(f"🔍 Include family: {include_family}")
+    print(f"🔍 Include comfort items: {include_comfort_items}")
+    print(f"🔍 Custom elements: {custom_elements}")
+    print(f"🔍 Child photos: {len(additional_child_photos)}")
+    print(f"🔍 Family photos: {len(additional_family_photos)}")
+    print(f"🔍 Comfort photos: {len(comfort_item_photos)}")
+    
+    # Convert tone string to enum
+    try:
+        from app.models.database_models import StoryTone
+        story_tone = StoryTone(tone.lower())
+    except ValueError:
+        story_tone = StoryTone.EMPOWERING
+    
+    # Parse custom elements
+    custom_elements_list = []
+    if custom_elements:
+        custom_elements_list = [elem.strip() for elem in custom_elements.split(",")]
+    
+    # Use hardcoded test user
+    test_user_id = "test-user-id-12345"
+    
+    # Mock subscription with "free" tier that works
+    class MockSubscription:
+        def __init__(self):
+            self.plan_type = "free"
+            self.tier = "free"  # Using "free" which we know works
+            self.is_active = True
+            self.status = "active"
+            self.is_valid = True
+            self.stories_limit = 999
+            self.stories_used = 0
+            self.stories_remaining = 999
+            self.current_period_start = datetime.now(timezone) - timedelta(days=1)
+            self.current_period_end = datetime.now(timezone) + timedelta(days=30)
+            self.can_generate_stories = True
+            self.has_payment_method = True
+            self.trial_expired = False
+    
+    # Mock user object
+    class MockUser:
+        def __init__(self):
+            self.id = test_user_id
+            self.email = "test@example.com"
+            self.full_name = "Test User"
+            self.subscription = MockSubscription()
+            self.is_active = True
+            self.is_verified = True
+            self.is_admin = False
+            self.created_at = datetime.now(timezone) - timedelta(days=30)
+            self.last_login = datetime.now(timezone)
+    
+    mock_user = MockUser()
+    
+    # Get Sunshine profile
+    sunshine = db.query(Sunshine).filter(
+        Sunshine.id == sunshine_id,
+        Sunshine.user_id == test_user_id
+    ).first()
+    
+    if not sunshine:
+        print(f"❌ V2 FORM: Sunshine not found: {sunshine_id}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Sunshine profile not found: {sunshine_id}"
+        )
+    
+    print(f"✅ V2 FORM: Found sunshine: {sunshine.name}")
+    
+    try:
+        # Generate story
+        result = enhanced_story_generator.generate_personalized_story(
+            user=mock_user,
+            sunshine=sunshine,
+            fear_or_challenge=fear_or_challenge,
+            tone=story_tone,
+            db=db,
+            include_family=include_family,
+            include_comfort_items=include_comfort_items,
+            custom_elements=custom_elements_list if custom_elements_list else None
+        )
+        
+        print(f"✅ V2 FORM: Story generated successfully!")
+        
+        # Get usage stats
+        usage_stats = usage_tracking_service.get_usage_stats(mock_user, db)
+        
+        return StoryGenerationResponse(
+            story_id=result["story_id"],
+            title=result["title"],
+            story_text=result["story_text"],
+            scenes=result["scenes"],
+            image_urls=result["image_urls"],
+            reading_time=result["reading_time"],
+            word_count=result["word_count"],
+            usage_type=result["usage_type"],
+            credits_remaining=usage_stats.get("stories_remaining", 0)
+        )
+        
+    except Exception as e:
+        print(f"❌ V2 FORM: Error: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Story generation failed: {str(e)}"
+        )
+
 @router.post("/generate", response_model=StoryGenerationResponse)
 async def generate_story(
     request: GenerateStoryRequest,
     # current_user: CurrentUser,  # TEMPORARILY DISABLED FOR TESTING
     db: DatabaseSession
 ):
+    # Log raw request for debugging
+    try:
+        print(f"🔍 V2 RAW REQUEST: {request}")
+        print(f"🔍 V2 REQUEST DICT: {request.dict() if hasattr(request, 'dict') else 'No dict method'}")
+    except Exception as e:
+        print(f"❌ V2 Error logging request: {e}")
     """
     Generate a personalized story with enhanced photo-based character consistency
     TEMPORARILY: Auth disabled for testing - using mock user
     """
     from datetime import timedelta
+    
+    # Debug logging for request data
+    print("🔍 V2 REQUEST DATA:")
+    print(f"🔍 Request type: {type(request)}")
+    print(f"🔍 Sunshine ID: {request.sunshine_id}")
+    print(f"🔍 Fear/challenge: {request.fear_or_challenge}")
+    print(f"🔍 Tone: {request.tone}")
+    print(f"🔍 Include family: {request.include_family}")
+    print(f"🔍 Include comfort items: {request.include_comfort_items}")
+    print(f"🔍 Custom elements: {request.custom_elements}")
+    print("🔍 V2 validation starting...")
     
     # TEMPORARY: Use hardcoded test user
     test_user_id = "test-user-id-12345"
