@@ -116,57 +116,95 @@ class EnhancedStoryGenerator:
         print(f"  👤 User ID: {user.id}")
         print(f"  ☀️ Sunshine ID: {sunshine.id}")
         
-        # Create story record
-        story = Story(
-            id=str(uuid.uuid4()),
-            user_id=user.id,
-            sunshine_id=sunshine.id,
-            title=story_content.get("title", f"{sunshine.name}'s Story"),
-            story_text=story_content.get("story_text", ""),
-            tone=tone,
-            child_name=sunshine.name,
-            age=self._calculate_age(sunshine.birthdate),
-            fear_or_challenge=fear_or_challenge,
-            favorite_items=[item.name for item in sunshine.comfort_items] if include_comfort_items and hasattr(sunshine, 'comfort_items') and sunshine.comfort_items else [],
-            family_members={fm.name: fm.relation_type for fm in sunshine.family_members} if include_family and hasattr(sunshine, 'family_members') and sunshine.family_members else {},
-            scenes=story_content.get("scenes", []),
-            image_urls=image_urls,
-            reading_time=reading_time,
-            word_count=word_count,
-            model_used="gpt-4o",
-            generation_time=story_content.get("generation_time", 0),
-            prompt_tokens=story_content.get("prompt_tokens", 0),
-            completion_tokens=story_content.get("completion_tokens", 0),
-            created_at=datetime.now(timezone.utc)
-        )
-        
-        db.add(story)
-        
-        # Record usage
-        usage_tracking_service.record_story_generation(
-            user=user,
-            story=story,
-            db=db,
-            usage_type=usage_type
-        )
-        
-        # ENSURE COMMIT AND REFRESH
-        db.commit()
-        db.refresh(story)
-        
-        # VERIFY SAVE
-        print(f"✅ STORY SAVED TO DATABASE:")
-        print(f"  📖 Story ID: {story.id}")
-        print(f"  👤 User ID: {story.user_id}")
-        print(f"  ☀️ Sunshine ID: {story.sunshine_id}")
-        print(f"  📚 Title: {story.title}")
-        
-        # Double-check it's in the database
-        verify_story = db.query(Story).filter(Story.id == story.id).first()
-        if verify_story:
-            print(f"✅ VERIFIED: Story {story.id} is in database")
-        else:
-            print(f"❌ ERROR: Story {story.id} NOT found after save!")
+        # CREATE AND SAVE STORY WITH COMPREHENSIVE ERROR HANDLING
+        try:
+            print("📚 ATTEMPTING TO SAVE STORY...")
+            print(f"📚 User ID: {user.id}")
+            print(f"📚 Sunshine ID: {sunshine.id}")
+            
+            story_id = str(uuid.uuid4())
+            print(f"📚 Generated Story ID: {story_id}")
+            
+            # Create story record
+            story = Story(
+                id=story_id,
+                user_id=user.id,
+                sunshine_id=sunshine.id,
+                title=story_content.get("title", f"{sunshine.name}'s Story"),
+                story_text=story_content.get("story_text", ""),
+                tone=tone,
+                child_name=sunshine.name,
+                age=self._calculate_age(sunshine.birthdate),
+                fear_or_challenge=fear_or_challenge,
+                favorite_items=[item.name for item in sunshine.comfort_items] if include_comfort_items and hasattr(sunshine, 'comfort_items') and sunshine.comfort_items else [],
+                family_members={fm.name: fm.relation_type for fm in sunshine.family_members} if include_family and hasattr(sunshine, 'family_members') and sunshine.family_members else {},
+                scenes=story_content.get("scenes", []),
+                image_urls=image_urls,
+                reading_time=reading_time,
+                word_count=word_count,
+                model_used="gpt-4o",
+                generation_time=story_content.get("generation_time", 0),
+                prompt_tokens=story_content.get("prompt_tokens", 0),
+                completion_tokens=story_content.get("completion_tokens", 0),
+                created_at=datetime.now(timezone.utc)
+            )
+            
+            print(f"📚 ADDING STORY TO DB SESSION...")
+            db.add(story)
+            
+            print(f"📚 RECORDING USAGE...")
+            # Record usage
+            try:
+                usage_tracking_service.record_story_generation(
+                    user=user,
+                    story=story,
+                    db=db,
+                    usage_type=usage_type
+                )
+                print(f"✅ Usage recorded successfully")
+            except Exception as usage_error:
+                print(f"⚠️ Usage recording failed: {usage_error}")
+                # Continue anyway - don't fail the whole save
+            
+            print(f"📚 COMMITTING TO DATABASE...")
+            db.commit()
+            
+            print(f"📚 REFRESHING STORY OBJECT...")
+            db.refresh(story)
+            
+            print(f"✅ STORY SAVED SUCCESSFULLY!")
+            print(f"  📖 Story ID: {story.id}")
+            print(f"  👤 User ID: {story.user_id}")
+            print(f"  ☀️ Sunshine ID: {story.sunshine_id}")
+            print(f"  📚 Title: {story.title}")
+            
+            # Double-check it's in the database
+            print(f"📚 VERIFYING SAVE...")
+            verify_story = db.query(Story).filter(Story.id == story.id).first()
+            if verify_story:
+                print(f"✅ VERIFIED: Story {story.id} is in database")
+            else:
+                print(f"❌ ERROR: Story {story.id} NOT found after save!")
+                
+        except Exception as save_error:
+            print(f"❌ SAVE FAILED: {str(save_error)}")
+            print(f"❌ ERROR TYPE: {type(save_error).__name__}")
+            print(f"❌ ERROR DETAILS: {repr(save_error)}")
+            
+            # Try to rollback
+            try:
+                db.rollback()
+                print(f"📚 Database rolled back")
+            except:
+                print(f"⚠️ Rollback failed")
+            
+            # Log more details about the error
+            import traceback
+            print(f"❌ FULL TRACEBACK:")
+            print(traceback.format_exc())
+            
+            # Re-raise to maintain original behavior
+            raise save_error
         
         total_time = time.time() - start_time
         print(f"🎉 Story generation complete!")

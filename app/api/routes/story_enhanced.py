@@ -256,6 +256,10 @@ async def generate_story_with_photos_impl(
         custom_elements_list.extend(comfort_item_descriptions)
     
     try:
+        print(f"🚀 STARTING STORY GENERATION PROCESS...")
+        print(f"🚀 User: {current_user.id}")
+        print(f"🚀 Sunshine: {sunshine.name} (ID: {sunshine.id})")
+        
         # Temporarily enhance character profiles with additional photo data
         if enhanced_profiles:
             # Store original profiles
@@ -272,6 +276,7 @@ async def generate_story_with_photos_impl(
                     combined_description = f"{profile.visual_description}. Additional details: {'. '.join(descriptions)}"
                     profile.visual_description = combined_description
         
+        print(f"🚀 CALLING STORY GENERATOR...")
         # Generate the enhanced story
         result = enhanced_story_generator.generate_personalized_story(
             user=current_user,
@@ -283,6 +288,7 @@ async def generate_story_with_photos_impl(
             include_comfort_items=include_comfort_items,
             custom_elements=custom_elements_list if custom_elements_list else None
         )
+        print(f"✅ STORY GENERATOR RETURNED SUCCESSFULLY")
         
         # Determine generation quality based on subscription
         generation_quality = "premium" if current_user.subscription and current_user.subscription.tier.value in ["premium", "enterprise"] else "standard"
@@ -334,10 +340,22 @@ async def generate_story_with_photos_impl(
                 detail=error_msg
             )
     except Exception as e:
-        print(f"Enhanced story generation failed: {str(e)}")
+        print(f"❌ ENHANCED STORY GENERATION FAILED!")
+        print(f"❌ Error: {str(e)}")
+        print(f"❌ Error Type: {type(e).__name__}")
+        
+        # Log full traceback
+        import traceback
+        print(f"❌ FULL TRACEBACK:")
+        print(traceback.format_exc())
+        
+        # Check if it's a database issue
+        if "database" in str(e).lower() or "sql" in str(e).lower():
+            print(f"❌ This appears to be a database error")
+        
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to generate enhanced story. You have not been charged."
+            detail=f"Failed to generate enhanced story: {str(e)}"
         )
     finally:
         # Clear character cache for next story
