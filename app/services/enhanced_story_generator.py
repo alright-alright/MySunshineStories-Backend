@@ -203,7 +203,30 @@ class EnhancedStoryGenerator:
         
         # Add personality traits
         if sunshine.personality_traits:
-            traits = json.loads(sunshine.personality_traits) if isinstance(sunshine.personality_traits, str) else sunshine.personality_traits
+            # Handle different types of personality traits data
+            if isinstance(sunshine.personality_traits, str):
+                # JSON string
+                traits = json.loads(sunshine.personality_traits)
+            elif isinstance(sunshine.personality_traits, list):
+                # List of PersonalityTrait objects or dicts
+                traits = []
+                for trait in sunshine.personality_traits:
+                    if hasattr(trait, 'trait'):
+                        # PersonalityTrait object - get the trait string
+                        traits.append(trait.trait)
+                    elif isinstance(trait, dict) and 'trait' in trait:
+                        # Dict with trait key
+                        traits.append(trait['trait'])
+                    elif isinstance(trait, str):
+                        # Already a string
+                        traits.append(trait)
+                    else:
+                        # Try to convert to string
+                        traits.append(str(trait))
+            else:
+                # Fallback
+                traits = []
+            
             main_character.personality_traits = traits
         
         main_character.role_in_story = "brave protagonist who overcomes challenges"
@@ -254,7 +277,9 @@ class EnhancedStoryGenerator:
         for name, profile in self.character_profiles.items():
             desc = f"- {profile.name} ({profile.relationship}): {profile.visual_description}"
             if profile.personality_traits:
-                desc += f" Personality: {', '.join(profile.personality_traits)}"
+                # Ensure all traits are strings
+                trait_strings = [str(t) for t in profile.personality_traits]
+                desc += f" Personality: {', '.join(trait_strings)}"
             character_descriptions.append(desc)
         
         # Build comfort items context
