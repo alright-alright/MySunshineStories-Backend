@@ -166,6 +166,96 @@ class EnhancedStoryGenerator:
         """Build detailed character profiles from Sunshine data"""
         self.character_profiles.clear()
         
+        # COMPREHENSIVE ATTRIBUTE CHECK
+        print("🔍 CHECKING ALL SUNSHINE ATTRIBUTES...")
+        required_attrs = [
+            'name', 'age', 'gender', 'birthdate', 'pronouns', 'nickname',
+            'favorite_color', 'favorite_animal', 'favorite_food', 'favorite_activity',
+            'favorite_places', 'favorite_activities', 'favorite_foods', 'favorite_colors',
+            'personality_traits', 'fears', 'dreams', 'comfort_items', 'family_members',
+            'main_photo_url', 'bedtime_routine', 'allergies', 'special_needs',
+            'personality_summary', 'additional_notes', 'photos', 'stories'
+        ]
+        
+        missing_attrs = []
+        for attr in required_attrs:
+            if hasattr(sunshine, attr):
+                value = getattr(sunshine, attr)
+                # Show first 50 chars if it's a long value
+                display_value = str(value)[:50] + "..." if len(str(value)) > 50 else str(value)
+                print(f"✅ {attr}: {display_value}")
+            else:
+                print(f"❌ MISSING: {attr}")
+                missing_attrs.append(attr)
+        
+        print(f"🔍 ATTRIBUTE CHECK COMPLETE - {len(missing_attrs)} missing attributes")
+        
+        # ADD DEFAULTS FOR ALL MISSING ATTRIBUTES
+        if missing_attrs:
+            print("🛠️ Adding defaults for missing attributes...")
+            
+            # Age calculation if missing
+            if 'age' in missing_attrs and hasattr(sunshine, 'birthdate'):
+                from datetime import date
+                today = date.today()
+                sunshine.age = today.year - sunshine.birthdate.year - ((today.month, today.day) < (sunshine.birthdate.month, sunshine.birthdate.day))
+                print(f"  📝 Set age = {sunshine.age} (calculated from birthdate)")
+            
+            # Plural attributes that might be singular
+            if 'favorite_places' in missing_attrs:
+                sunshine.favorite_places = []
+                print(f"  📝 Set favorite_places = []")
+            
+            if 'favorite_activities' in missing_attrs:
+                if hasattr(sunshine, 'favorite_activity') and sunshine.favorite_activity:
+                    sunshine.favorite_activities = [sunshine.favorite_activity]
+                    print(f"  📝 Set favorite_activities from favorite_activity")
+                else:
+                    sunshine.favorite_activities = []
+                    print(f"  📝 Set favorite_activities = []")
+            
+            if 'favorite_foods' in missing_attrs:
+                if hasattr(sunshine, 'favorite_food') and sunshine.favorite_food:
+                    sunshine.favorite_foods = [sunshine.favorite_food]
+                    print(f"  📝 Set favorite_foods from favorite_food")
+                else:
+                    sunshine.favorite_foods = []
+                    print(f"  📝 Set favorite_foods = []")
+            
+            if 'favorite_colors' in missing_attrs:
+                if hasattr(sunshine, 'favorite_color') and sunshine.favorite_color:
+                    sunshine.favorite_colors = [sunshine.favorite_color]
+                    print(f"  📝 Set favorite_colors from favorite_color")
+                else:
+                    sunshine.favorite_colors = []
+                    print(f"  📝 Set favorite_colors = []")
+            
+            # Other missing attributes with safe defaults
+            defaults = {
+                'pronouns': 'they/them',
+                'nickname': getattr(sunshine, 'name', 'Sunshine'),
+                'fears': None,
+                'dreams': None,
+                'bedtime_routine': None,
+                'allergies': None,
+                'special_needs': None,
+                'personality_summary': None,
+                'additional_notes': None,
+                'main_photo_url': None,
+                'photos': [],
+                'stories': [],
+                'comfort_items': [],
+                'family_members': [],
+                'personality_traits': []
+            }
+            
+            for attr, default_value in defaults.items():
+                if attr in missing_attrs:
+                    setattr(sunshine, attr, default_value)
+                    print(f"  📝 Set {attr} = {default_value}")
+        
+        print("✅ All attributes ready for story generation!")
+        
         # Get main photo from photos relationship
         main_photo_url = None
         if hasattr(sunshine, 'photos') and sunshine.photos:
@@ -271,6 +361,19 @@ class EnhancedStoryGenerator:
         
         print(f"📝 _generate_story_content called")
         print(f"📝 Building prompt for GPT-4...")
+        
+        # Quick attribute check for story-specific fields
+        story_attrs = ['name', 'age', 'gender', 'comfort_items', 'family_members']
+        for attr in story_attrs:
+            if hasattr(sunshine, attr):
+                print(f"  ✅ Story attr {attr}: {getattr(sunshine, attr)}")
+            else:
+                print(f"  ❌ Story attr MISSING: {attr}")
+                # Set default
+                if attr == 'age':
+                    setattr(sunshine, attr, 5)  # Default age
+                else:
+                    setattr(sunshine, attr, [] if attr.endswith('s') else None)
         
         # Build character descriptions for the prompt
         character_descriptions = []
