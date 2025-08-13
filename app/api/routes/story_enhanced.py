@@ -61,7 +61,7 @@ async def generate_story_with_photos(
         def __init__(self):
             # Plan details
             self.plan_type = "premium"
-            self.tier = "standard"  # Try 'standard' tier value
+            self.tier = "free"  # Try 'free' tier value
             
             # Status flags - all active/valid
             self.is_active = True
@@ -342,7 +342,7 @@ async def generate_story_with_photos_test(
         def __init__(self):
             # Plan details
             self.plan_type = "premium"
-            self.tier = "standard"  # Try 'standard' tier value
+            self.tier = "free"  # Try 'free' tier value
             
             # Status flags - all active/valid
             self.is_active = True
