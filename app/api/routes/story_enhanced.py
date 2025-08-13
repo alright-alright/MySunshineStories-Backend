@@ -299,6 +299,11 @@ async def generate_story_with_photos_impl(
         print(f"📤 V3 RETURNING STORY TO FRONTEND:")
         print(f"  📖 story_id: {result.get('story_id')}")
         print(f"  📖 title: {result.get('title')}")
+        print(f"  📖 story_text length: {len(result.get('story_text', ''))} chars")
+        print(f"  📖 scenes count: {len(result.get('scenes', []))}")
+        print(f"  📖 image_urls count: {len(result.get('image_urls', []))}")
+        print(f"  📖 word_count: {result.get('word_count', 0)}")
+        print(f"  📖 reading_time: {result.get('reading_time', 0)}")
         
         # ENSURE ALL FIELDS ARE SAFE FOR FRONTEND - NEVER None
         response = EnhancedStoryResponse(
@@ -321,6 +326,15 @@ async def generate_story_with_photos_impl(
         print(f"📤 FINAL RESPONSE FORMAT:")
         print(f"  📖 id: {response_dict.get('id') if isinstance(response_dict, dict) else 'N/A'}")
         print(f"  📖 story_id: {response_dict.get('story_id') if isinstance(response_dict, dict) else 'N/A'}")
+        print(f"  📖 title: {response_dict.get('title') if isinstance(response_dict, dict) else 'N/A'}")
+        print(f"  📖 story_text present: {'Yes' if response_dict.get('story_text') else 'No'}")
+        print(f"  📖 story_text length: {len(response_dict.get('story_text', '')) if isinstance(response_dict, dict) else 0} chars")
+        print(f"  📖 scenes present: {'Yes' if response_dict.get('scenes') else 'No'}")
+        print(f"  📖 scenes count: {len(response_dict.get('scenes', [])) if isinstance(response_dict, dict) else 0}")
+        print(f"  📖 image_urls present: {'Yes' if response_dict.get('image_urls') else 'No'}")
+        print(f"  📖 image_urls count: {len(response_dict.get('image_urls', [])) if isinstance(response_dict, dict) else 0}")
+        print(f"  📖 word_count: {response_dict.get('word_count', 0) if isinstance(response_dict, dict) else 0}")
+        print(f"  📖 reading_time: {response_dict.get('reading_time', 0) if isinstance(response_dict, dict) else 0}")
         
         return response
         
