@@ -66,6 +66,7 @@ async def generate_story_form(
     Accepts multipart/form-data like v3 endpoint
     """
     from datetime import timedelta
+    from app.models.database_models import SubscriptionTier
     
     print("🔍 V2 FORM DATA:")
     print(f"🔍 Sunshine ID: {sunshine_id}")
@@ -104,6 +105,10 @@ async def generate_story_form(
             self.stories_limit = 999
             self.stories_used = 0
             self.stories_remaining = 999
+            # Fields needed for FREE tier validation
+            self.individual_story_credits = 10
+            self.stories_per_month = 5
+            self.stories_created_this_month = 0
             self.current_period_start = datetime.now(timezone) - timedelta(days=1)
             self.current_period_end = datetime.now(timezone) + timedelta(days=30)
             self.can_generate_stories = True
@@ -196,6 +201,7 @@ async def generate_story(
     TEMPORARILY: Auth disabled for testing - using mock user
     """
     from datetime import timedelta
+    from app.models.database_models import SubscriptionTier
     
     # Debug logging for request data
     print("🔍 V2 REQUEST DATA:")
@@ -216,13 +222,17 @@ async def generate_story(
     class MockSubscription:
         def __init__(self):
             self.plan_type = "free"
-            self.tier = "free"  # CONFIRMED WORKING: "free" tier passes validation
+            self.tier = SubscriptionTier.FREE  # Use actual enum value!
             self.is_active = True
             self.status = "active"
             self.is_valid = True
             self.stories_limit = 999
             self.stories_used = 0
             self.stories_remaining = 999
+            # Fields needed for FREE tier validation
+            self.individual_story_credits = 10
+            self.stories_per_month = 5
+            self.stories_created_this_month = 0
             self.current_period_start = datetime.now(timezone) - timedelta(days=1)
             self.current_period_end = datetime.now(timezone) + timedelta(days=30)
             self.can_generate_stories = True
@@ -325,13 +335,17 @@ async def generate_story_test(
     class MockSubscription:
         def __init__(self):
             self.plan_type = "free"
-            self.tier = "free"  # CONFIRMED WORKING: "free" tier passes validation
+            self.tier = SubscriptionTier.FREE  # Use actual enum value!
             self.is_active = True
             self.status = "active"
             self.is_valid = True
             self.stories_limit = 999
             self.stories_used = 0
             self.stories_remaining = 999
+            # Fields needed for FREE tier validation
+            self.individual_story_credits = 10
+            self.stories_per_month = 5
+            self.stories_created_this_month = 0
             self.current_period_start = datetime.now(timezone) - timedelta(days=1)
             self.current_period_end = datetime.now(timezone) + timedelta(days=30)
             self.can_generate_stories = True

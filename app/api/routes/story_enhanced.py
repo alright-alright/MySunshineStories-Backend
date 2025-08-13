@@ -52,6 +52,9 @@ async def generate_story_with_photos(
     TEMPORARY: Original endpoint with auth bypass for testing
     Frontend expects this exact URL
     """
+    # Import the actual enum
+    from app.models.database_models import SubscriptionTier
+    
     # Use hardcoded test user
     test_user_id = "test-user-id-12345"
     print(f"🔍 V3 ENHANCED: Generating story at original URL for test user: {test_user_id}")
@@ -62,7 +65,7 @@ async def generate_story_with_photos(
         def __init__(self):
             # Plan details
             self.plan_type = "free"
-            self.tier = "free"  # CONFIRMED WORKING: "free" tier passes validation
+            self.tier = SubscriptionTier.FREE  # Use actual enum value, not string!
             
             # Status flags - all active/valid
             self.is_active = True
@@ -73,6 +76,11 @@ async def generate_story_with_photos(
             self.stories_limit = 999
             self.stories_used = 0  # No stories used yet
             self.stories_remaining = 999  # Full capacity
+            
+            # Fields needed for FREE tier validation
+            self.individual_story_credits = 10  # Some free credits
+            self.stories_per_month = 5  # Monthly limit for free tier
+            self.stories_created_this_month = 0  # Haven't used any this month
             
             # Period dates
             self.current_period_start = datetime.now(timezone.utc) - timedelta(days=1)
@@ -109,7 +117,8 @@ async def generate_story_with_photos(
     
     print(f"🔍 V3 DEBUG: Checking subscription details...")
     print(f"🔍 V3 Subscription status: {mock_user.subscription.status}")
-    print(f"🔍 V3 Subscription tier: {mock_user.subscription.tier}")
+    print(f"🔍 V3 Subscription tier: {mock_user.subscription.tier} (type: {type(mock_user.subscription.tier)})")
+    print(f"🔍 V3 Subscription tier.value: {mock_user.subscription.tier.value if hasattr(mock_user.subscription.tier, 'value') else 'N/A'}")
     print(f"🔍 V3 Subscription plan_type: {mock_user.subscription.plan_type}")
     print(f"🔍 V3 Subscription is_active: {mock_user.subscription.is_active}")
     print(f"🔍 Subscription is_valid: {getattr(mock_user.subscription, 'is_valid', 'N/A')}")
@@ -356,6 +365,11 @@ async def generate_story_with_photos_test(
             self.stories_used = 0  # No stories used yet
             self.stories_remaining = 999  # Full capacity
             
+            # Fields needed for FREE tier validation
+            self.individual_story_credits = 10  # Some free credits
+            self.stories_per_month = 5  # Monthly limit for free tier
+            self.stories_created_this_month = 0  # Haven't used any this month
+            
             # Period dates
             self.current_period_start = datetime.now(timezone.utc) - timedelta(days=1)
             self.current_period_end = datetime.now(timezone.utc) + timedelta(days=30)
@@ -391,7 +405,8 @@ async def generate_story_with_photos_test(
     
     print(f"🔍 V3 DEBUG: Checking subscription details...")
     print(f"🔍 V3 Subscription status: {mock_user.subscription.status}")
-    print(f"🔍 V3 Subscription tier: {mock_user.subscription.tier}")
+    print(f"🔍 V3 Subscription tier: {mock_user.subscription.tier} (type: {type(mock_user.subscription.tier)})")
+    print(f"🔍 V3 Subscription tier.value: {mock_user.subscription.tier.value if hasattr(mock_user.subscription.tier, 'value') else 'N/A'}")
     print(f"🔍 V3 Subscription plan_type: {mock_user.subscription.plan_type}")
     print(f"🔍 V3 Subscription is_active: {mock_user.subscription.is_active}")
     print(f"🔍 Subscription is_valid: {getattr(mock_user.subscription, 'is_valid', 'N/A')}")
