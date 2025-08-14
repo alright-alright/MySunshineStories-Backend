@@ -41,7 +41,8 @@ class EnhancedStoryResponse(BaseModel):
     generation_quality: str  # "standard" or "premium"
 
 
-# Main endpoint with authentication
+# Main endpoint - BOTH URLs for frontend compatibility
+@router.post("/create-with-photos", response_model=EnhancedStoryResponse)
 @router.post("/generate-with-photos", response_model=EnhancedStoryResponse)
 async def generate_story_with_photos(
     current_user: User = Depends(get_current_user),
@@ -59,6 +60,8 @@ async def generate_story_with_photos(
 ):
     """
     Generate story with photos for authenticated user
+    Note: Both /create-with-photos and /generate-with-photos routes point here
+    Frontend uses /create-with-photos, keeping both for compatibility
     """
     print(f"🔍 V3 ENHANCED: Generating story for authenticated user: {current_user.id}")
     print(f"🔍 V3 ENHANCED: Form data - sunshine_id: {sunshine_id}, fear: {fear_or_challenge}, tone: {tone}")
