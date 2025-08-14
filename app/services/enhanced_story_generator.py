@@ -574,6 +574,12 @@ Return as JSON:
             print(f"📖 GENERATED STORY TITLE: {story_data.get('title', 'Unknown')}")
             print(f"📖 STORY LENGTH: {len(story_data.get('story_text', ''))} characters")
             
+            # Post-process the story text to ensure proper paragraph formatting
+            if "story_text" in story_data and story_data["story_text"]:
+                print(f"📝 Applying paragraph formatting post-processing...")
+                story_data["story_text"] = self._format_story_paragraphs(story_data["story_text"])
+                print(f"✅ Story text formatted with proper paragraph breaks")
+            
             # Add metadata
             story_data["generation_time"] = generation_time
             story_data["prompt_tokens"] = response.usage.prompt_tokens
@@ -584,6 +590,35 @@ Return as JSON:
         except Exception as e:
             print(f"Error generating story content: {e}")
             return self._create_fallback_story_content(sunshine, fear_or_challenge)
+    
+    def _format_story_paragraphs(self, story_text: str) -> str:
+        """Post-process story text to add proper paragraph breaks"""
+        # Split by sentences and group into paragraphs
+        sentences = story_text.split('. ')
+        paragraphs = []
+        current_paragraph = []
+        
+        for i, sentence in enumerate(sentences):
+            if not sentence.strip():
+                continue
+                
+            # Add the period back except for the last sentence
+            if i < len(sentences) - 1 and not sentence.endswith('.'):
+                sentence += '.'
+                
+            current_paragraph.append(sentence.strip())
+            
+            # Create new paragraph every 3-4 sentences
+            if len(current_paragraph) >= 3:
+                paragraphs.append(' '.join(current_paragraph))
+                current_paragraph = []
+        
+        # Add remaining sentences as final paragraph
+        if current_paragraph:
+            paragraphs.append(' '.join(current_paragraph))
+        
+        # Ensure proper formatting with double newlines
+        return '\n\n'.join(paragraphs)
     
     def _generate_character_consistent_images(
         self,
