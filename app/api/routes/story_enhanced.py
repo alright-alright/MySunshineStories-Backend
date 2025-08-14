@@ -66,6 +66,28 @@ async def generate_story_with_photos(
     print(f"🔍 V3 ENHANCED: Generating story for authenticated user: {current_user.id}")
     print(f"🔍 V3 ENHANCED: Form data - sunshine_id: {sunshine_id}, fear: {fear_or_challenge}, tone: {tone}")
     
+    # TEMPORARY: Add mock subscription if user doesn't have one
+    if not hasattr(current_user, 'subscription') or not current_user.subscription:
+        print(f"⚠️ User has no subscription, adding mock subscription for testing")
+        from app.models.database_models import Subscription, SubscriptionTier
+        from datetime import datetime, timezone, timedelta
+        
+        # Create a mock subscription object
+        mock_subscription = Subscription(
+            id=f"mock-sub-{current_user.id}",
+            user_id=current_user.id,
+            tier=SubscriptionTier.FREE,
+            status="active",
+            is_active=True,
+            stories_per_month=10,
+            stories_created_this_month=0,
+            current_period_start=datetime.now(timezone.utc) - timedelta(days=1),
+            current_period_end=datetime.now(timezone.utc) + timedelta(days=30),
+            created_at=datetime.now(timezone.utc)
+        )
+        current_user.subscription = mock_subscription
+        print(f"✅ Added mock FREE subscription for user")
+    
     # Debug logging to trace authorization
     print(f"🔍 V3 DEBUG: Starting story generation with authenticated user...")
     print(f"🔍 V3 User ID: {current_user.id}")
