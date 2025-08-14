@@ -100,7 +100,6 @@ async def generate_story_with_photos(
         print(f"🔍 V3 Subscription status: {current_user.subscription.status}")
         print(f"🔍 V3 Subscription tier: {current_user.subscription.tier}")
         print(f"🔍 V3 Subscription plan_type: {getattr(current_user.subscription, 'plan_type', 'N/A')}")
-        print(f"🔍 V3 Subscription is_active: {current_user.subscription.is_active}")
     else:
         print(f"🔍 V3 DEBUG: User has no subscription, using defaults")
     
