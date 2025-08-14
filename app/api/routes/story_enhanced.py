@@ -72,15 +72,15 @@ async def generate_story_with_photos(
         from app.models.database_models import Subscription, SubscriptionTier
         from datetime import datetime, timezone, timedelta
         
-        # Create a mock subscription object
+        # Create a mock subscription object with VALID fields only
         mock_subscription = Subscription(
             id=f"mock-sub-{current_user.id}",
             user_id=current_user.id,
             tier=SubscriptionTier.FREE,
             status="active",
-            is_active=True,
             stories_per_month=10,
             stories_created_this_month=0,
+            sunshines_limit=5,
             current_period_start=datetime.now(timezone.utc) - timedelta(days=1),
             current_period_end=datetime.now(timezone.utc) + timedelta(days=30),
             created_at=datetime.now(timezone.utc)
