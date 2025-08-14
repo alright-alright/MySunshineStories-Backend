@@ -118,17 +118,38 @@ async def generate_story_with_photos_impl(
     """
     INTERNAL: Implementation function with auth parameter
     """
-    # Get Sunshine profile
+    # Get Sunshine profile with detailed debugging
+    print(f"🔍 Looking for Sunshine ID: {sunshine_id}")
+    print(f"🔍 Current user ID: {current_user.id}")
+    
+    # First, check if sunshine exists at all
+    sunshine_exists = db.query(Sunshine).filter(Sunshine.id == sunshine_id).first()
+    if sunshine_exists:
+        print(f"✅ Sunshine found with ID {sunshine_id}, belongs to user: {sunshine_exists.user_id}")
+    else:
+        print(f"❌ No Sunshine found with ID: {sunshine_id}")
+    
+    # Now check with user filter
     sunshine = db.query(Sunshine).filter(
         Sunshine.id == sunshine_id,
         Sunshine.user_id == current_user.id
     ).first()
     
     if not sunshine:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Sunshine profile not found"
-        )
+        # Try without user filter to see if it's a permission issue
+        any_sunshine = db.query(Sunshine).filter(Sunshine.id == sunshine_id).first()
+        if any_sunshine:
+            print(f"❌ Sunshine exists but belongs to different user: {any_sunshine.user_id} != {current_user.id}")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"You don't have permission to access this Sunshine profile"
+            )
+        else:
+            print(f"❌ Sunshine profile not found with ID: {sunshine_id}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Sunshine profile not found with ID: {sunshine_id}"
+            )
     
     # Parse custom elements
     custom_elements_list = []
