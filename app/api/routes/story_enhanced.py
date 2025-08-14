@@ -8,7 +8,7 @@ from datetime import datetime, timezone, timedelta
 import uuid
 import json
 
-from app.core.dependencies import CurrentUser, DatabaseSession, get_current_user
+from app.core.dependencies import get_current_user
 from app.core.database import get_db
 from app.models.database_models import User
 from sqlalchemy.orm import Session
@@ -40,8 +40,6 @@ class EnhancedStoryResponse(BaseModel):
 # Main endpoint with authentication
 @router.post("/generate-with-photos", response_model=EnhancedStoryResponse)
 async def generate_story_with_photos(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
     sunshine_id: str = Form(...),
     fear_or_challenge: str = Form(...),
     tone: str = Form(default="empowering"),
@@ -51,7 +49,10 @@ async def generate_story_with_photos(
     # Photo uploads for real-time character analysis
     additional_child_photos: List[UploadFile] = File(default=[]),
     additional_family_photos: List[UploadFile] = File(default=[]),
-    comfort_item_photos: List[UploadFile] = File(default=[])
+    comfort_item_photos: List[UploadFile] = File(default=[]),
+    # Dependencies must come last
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     """
     Generate story with photos for authenticated user
@@ -95,18 +96,18 @@ async def generate_story_with_photos(
 
 # Original function renamed - implementation with auth
 async def generate_story_with_photos_impl(
-    current_user: CurrentUser,
-    db: DatabaseSession,
-    sunshine_id: str = Form(...),
-    fear_or_challenge: str = Form(...),
-    tone: str = Form(default="empowering"),
-    include_family: bool = Form(default=True),
-    include_comfort_items: bool = Form(default=True),
-    custom_elements: Optional[str] = Form(default=None),
+    current_user: User,
+    db: Session,
+    sunshine_id: str,
+    fear_or_challenge: str,
+    tone: str = "empowering",
+    include_family: bool = True,
+    include_comfort_items: bool = True,
+    custom_elements: Optional[str] = None,
     # Photo uploads for real-time character analysis
-    additional_child_photos: List[UploadFile] = File(default=[]),
-    additional_family_photos: List[UploadFile] = File(default=[]),
-    comfort_item_photos: List[UploadFile] = File(default=[])
+    additional_child_photos: List[UploadFile] = [],
+    additional_family_photos: List[UploadFile] = [],
+    comfort_item_photos: List[UploadFile] = []
 ):
     """
     INTERNAL: Implementation function with auth parameter

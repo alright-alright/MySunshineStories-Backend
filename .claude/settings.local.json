@@ -10,9 +10,11 @@
       "Bash(pip install:*)",
       "Bash(alembic upgrade:*)",
       "Bash(alembic init:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(python:*)"
     ],
     "deny": [],
-    "ask": []
+    "ask": [],
+    "defaultMode": "acceptEdits"
   }
 }
