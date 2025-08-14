@@ -12,6 +12,10 @@ from app.core.dependencies import get_current_user
 from app.core.database import get_db
 from app.models.database_models import User
 from sqlalchemy.orm import Session
+
+# Type alias for consistency
+from typing import Annotated
+DatabaseSession = Annotated[Session, Depends(get_db)]
 from app.services.enhanced_story_generator import enhanced_story_generator, CharacterProfile
 from app.services.usage_tracking_service import usage_tracking_service
 from app.services.image_generator import resize_uploaded_image, validate_image_file
@@ -432,10 +436,10 @@ async def generate_story_with_photos_test(
 
 @router.post("/analyze-photo-for-character")
 async def analyze_photo_for_character(
-    current_user: CurrentUser,
     character_name: str = Form(...),
     relationship: str = Form(default="child"),
-    photo: UploadFile = File(...)
+    photo: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
 ):
     """
     Analyze a photo to extract character description for story generation
@@ -485,7 +489,7 @@ Style: Warm, friendly cartoon suitable for children's stories
 
 @router.get("/story-templates")
 async def get_story_templates(
-    current_user: CurrentUser,
+    current_user: User = Depends(get_current_user),
     age_group: Optional[str] = None
 ):
     """
