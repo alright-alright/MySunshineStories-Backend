@@ -11,7 +11,8 @@
       "Bash(alembic upgrade:*)",
       "Bash(alembic init:*)",
       "Bash(grep:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": [],

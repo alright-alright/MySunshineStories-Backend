@@ -8,15 +8,18 @@ from datetime import datetime, timezone, timedelta
 import uuid
 import json
 
-from app.core.dependencies import get_current_user, CurrentUser, DatabaseSession
+from app.core.dependencies import get_current_user
 from app.core.database import get_db
-from app.models.database_models import User
+from app.models.database_models import User, Story, StoryTone, Sunshine
 from sqlalchemy.orm import Session
 from typing import Annotated
 from app.services.enhanced_story_generator import enhanced_story_generator, CharacterProfile
 from app.services.usage_tracking_service import usage_tracking_service
 from app.services.image_generator import resize_uploaded_image, validate_image_file
-from app.models.database_models import Story, StoryTone, Sunshine
+
+# Type aliases for FastAPI dependencies
+CurrentUser = Annotated[User, Depends(get_current_user)]
+DatabaseSession = Annotated[Session, Depends(get_db)]
 from pydantic import BaseModel, Field
 
 router = APIRouter()
@@ -41,8 +44,8 @@ class EnhancedStoryResponse(BaseModel):
 # Main endpoint with authentication
 @router.post("/generate-with-photos", response_model=EnhancedStoryResponse)
 async def generate_story_with_photos(
-    current_user: CurrentUser,
-    db: DatabaseSession,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
     sunshine_id: str = Form(...),
     fear_or_challenge: str = Form(...),
     tone: str = Form(default="empowering"),
@@ -96,8 +99,8 @@ async def generate_story_with_photos(
 
 # Original function renamed - implementation with auth
 async def generate_story_with_photos_impl(
-    current_user: CurrentUser,
-    db: DatabaseSession,
+    current_user: User,
+    db: Session,
     sunshine_id: str,
     fear_or_challenge: str,
     tone: str = "empowering",
@@ -432,7 +435,7 @@ async def generate_story_with_photos_test(
 
 @router.post("/analyze-photo-for-character")
 async def analyze_photo_for_character(
-    current_user: CurrentUser,
+    current_user: User = Depends(get_current_user),
     character_name: str = Form(...),
     relationship: str = Form(default="child"),
     photo: UploadFile = File(...)
@@ -485,7 +488,7 @@ Style: Warm, friendly cartoon suitable for children's stories
 
 @router.get("/story-templates")
 async def get_story_templates(
-    current_user: CurrentUser,
+    current_user: User = Depends(get_current_user),
     age_group: Optional[str] = None
 ):
     """
