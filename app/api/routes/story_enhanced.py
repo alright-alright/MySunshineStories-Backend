@@ -8,14 +8,11 @@ from datetime import datetime, timezone, timedelta
 import uuid
 import json
 
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user, CurrentUser, DatabaseSession
 from app.core.database import get_db
 from app.models.database_models import User
 from sqlalchemy.orm import Session
-
-# Type alias for consistency
 from typing import Annotated
-DatabaseSession = Annotated[Session, Depends(get_db)]
 from app.services.enhanced_story_generator import enhanced_story_generator, CharacterProfile
 from app.services.usage_tracking_service import usage_tracking_service
 from app.services.image_generator import resize_uploaded_image, validate_image_file
@@ -44,6 +41,8 @@ class EnhancedStoryResponse(BaseModel):
 # Main endpoint with authentication
 @router.post("/generate-with-photos", response_model=EnhancedStoryResponse)
 async def generate_story_with_photos(
+    current_user: CurrentUser,
+    db: DatabaseSession,
     sunshine_id: str = Form(...),
     fear_or_challenge: str = Form(...),
     tone: str = Form(default="empowering"),
@@ -53,10 +52,7 @@ async def generate_story_with_photos(
     # Photo uploads for real-time character analysis
     additional_child_photos: List[UploadFile] = File(default=[]),
     additional_family_photos: List[UploadFile] = File(default=[]),
-    comfort_item_photos: List[UploadFile] = File(default=[]),
-    # Dependencies must come last
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    comfort_item_photos: List[UploadFile] = File(default=[])
 ):
     """
     Generate story with photos for authenticated user
@@ -100,8 +96,8 @@ async def generate_story_with_photos(
 
 # Original function renamed - implementation with auth
 async def generate_story_with_photos_impl(
-    current_user: User,
-    db: Session,
+    current_user: CurrentUser,
+    db: DatabaseSession,
     sunshine_id: str,
     fear_or_challenge: str,
     tone: str = "empowering",
@@ -436,10 +432,10 @@ async def generate_story_with_photos_test(
 
 @router.post("/analyze-photo-for-character")
 async def analyze_photo_for_character(
+    current_user: CurrentUser,
     character_name: str = Form(...),
     relationship: str = Form(default="child"),
-    photo: UploadFile = File(...),
-    current_user: User = Depends(get_current_user)
+    photo: UploadFile = File(...)
 ):
     """
     Analyze a photo to extract character description for story generation
@@ -489,7 +485,7 @@ Style: Warm, friendly cartoon suitable for children's stories
 
 @router.get("/story-templates")
 async def get_story_templates(
-    current_user: User = Depends(get_current_user),
+    current_user: CurrentUser,
     age_group: Optional[str] = None
 ):
     """
