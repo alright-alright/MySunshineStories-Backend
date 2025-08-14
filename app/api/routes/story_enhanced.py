@@ -8,7 +8,10 @@ from datetime import datetime, timezone, timedelta
 import uuid
 import json
 
-from app.core.dependencies import CurrentUser, DatabaseSession
+from app.core.dependencies import CurrentUser, DatabaseSession, get_current_user
+from app.core.database import get_db
+from app.models.database_models import User
+from sqlalchemy.orm import Session
 from app.services.enhanced_story_generator import enhanced_story_generator, CharacterProfile
 from app.services.usage_tracking_service import usage_tracking_service
 from app.services.image_generator import resize_uploaded_image, validate_image_file
@@ -34,10 +37,11 @@ class EnhancedStoryResponse(BaseModel):
     generation_quality: str  # "standard" or "premium"
 
 
-# TEMPORARY: Original URL without auth for testing
+# Main endpoint with authentication
 @router.post("/generate-with-photos", response_model=EnhancedStoryResponse)
 async def generate_story_with_photos(
-    db: DatabaseSession,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
     sunshine_id: str = Form(...),
     fear_or_challenge: str = Form(...),
     tone: str = Form(default="empowering"),
@@ -50,91 +54,32 @@ async def generate_story_with_photos(
     comfort_item_photos: List[UploadFile] = File(default=[])
 ):
     """
-    TEMPORARY: Original endpoint with auth bypass for testing
-    Frontend expects this exact URL
+    Generate story with photos for authenticated user
     """
-    # Import the actual enum
-    from app.models.database_models import SubscriptionTier
-    
-    # Use hardcoded test user
-    test_user_id = "test-user-id-12345"
-    print(f"🔍 V3 ENHANCED: Generating story at original URL for test user: {test_user_id}")
+    print(f"🔍 V3 ENHANCED: Generating story for authenticated user: {current_user.id}")
     print(f"🔍 V3 ENHANCED: Form data - sunshine_id: {sunshine_id}, fear: {fear_or_challenge}, tone: {tone}")
     
-    # Mock subscription object with all authorization attributes
-    class MockSubscription:
-        def __init__(self):
-            # Plan details
-            self.plan_type = "free"
-            self.tier = SubscriptionTier.FREE  # Use actual enum value, not string!
-            
-            # Status flags - all active/valid
-            self.is_active = True
-            self.status = "active"  # Could also be "paid"
-            self.is_valid = True  # Explicitly valid
-            
-            # Usage tracking - plenty of capacity
-            self.stories_limit = 999
-            self.stories_used = 0  # No stories used yet
-            self.stories_remaining = 999  # Full capacity
-            self.sunshines_limit = 999  # CRITICAL: Needed for save!
-            
-            # Fields needed for FREE tier validation
-            self.individual_story_credits = 10  # Some free credits
-            self.stories_per_month = 5  # Monthly limit for free tier
-            self.stories_created_this_month = 0  # Haven't used any this month
-            
-            # Period dates
-            self.current_period_start = datetime.now(timezone.utc) - timedelta(days=1)
-            self.current_period_end = datetime.now(timezone.utc) + timedelta(days=30)
-            
-            # Additional flags that might be checked
-            self.can_generate_stories = True
-            self.has_payment_method = True
-            self.trial_expired = False
-    
-    # Mock user object with full authorization
-    class MockUser:
-        def __init__(self):
-            self.id = test_user_id
-            self.email = "test@example.com"
-            self.full_name = "Test User"
-            self.subscription = MockSubscription()
-            
-            # Additional user attributes that might be checked
-            self.is_active = True
-            self.is_verified = True
-            self.is_admin = False  # Regular user
-            self.created_at = datetime.now(timezone.utc) - timedelta(days=30)
-            self.last_login = datetime.now(timezone.utc)
-            self.sunshines = []  # CRITICAL: Needed for story save!
-    
-    mock_user = MockUser()
-    
     # Debug logging to trace authorization
-    print(f"🔍 V3 DEBUG: Starting story generation with mock user...")
-    print(f"🔍 V3 User ID: {mock_user.id}")
-    print(f"🔍 V3 User email: {mock_user.email}")
-    print(f"🔍 V3 User is_active: {getattr(mock_user, 'is_active', 'N/A')}")
-    print(f"🔍 V3 User is_verified: {getattr(mock_user, 'is_verified', 'N/A')}")
+    print(f"🔍 V3 DEBUG: Starting story generation with authenticated user...")
+    print(f"🔍 V3 User ID: {current_user.id}")
+    print(f"🔍 V3 User email: {current_user.email}")
+    print(f"🔍 V3 User is_active: {getattr(current_user, 'is_active', 'N/A')}")
+    print(f"🔍 V3 User is_verified: {getattr(current_user, 'is_verified', 'N/A')}")
     
-    print(f"🔍 V3 DEBUG: Checking subscription details...")
-    print(f"🔍 V3 Subscription status: {mock_user.subscription.status}")
-    print(f"🔍 V3 Subscription tier: {mock_user.subscription.tier} (type: {type(mock_user.subscription.tier)})")
-    print(f"🔍 V3 Subscription tier.value: {mock_user.subscription.tier.value if hasattr(mock_user.subscription.tier, 'value') else 'N/A'}")
-    print(f"🔍 V3 Subscription plan_type: {mock_user.subscription.plan_type}")
-    print(f"🔍 V3 Subscription is_active: {mock_user.subscription.is_active}")
-    print(f"🔍 Subscription is_valid: {getattr(mock_user.subscription, 'is_valid', 'N/A')}")
-    print(f"🔍 Stories limit: {mock_user.subscription.stories_limit}")
-    print(f"🔍 Stories used: {getattr(mock_user.subscription, 'stories_used', 'N/A')}")
-    print(f"🔍 Stories remaining: {getattr(mock_user.subscription, 'stories_remaining', 'N/A')}")
-    print(f"🔍 Can generate stories: {getattr(mock_user.subscription, 'can_generate_stories', 'N/A')}")
+    if hasattr(current_user, 'subscription') and current_user.subscription:
+        print(f"🔍 V3 DEBUG: Checking subscription details...")
+        print(f"🔍 V3 Subscription status: {current_user.subscription.status}")
+        print(f"🔍 V3 Subscription tier: {current_user.subscription.tier}")
+        print(f"🔍 V3 Subscription plan_type: {getattr(current_user.subscription, 'plan_type', 'N/A')}")
+        print(f"🔍 V3 Subscription is_active: {current_user.subscription.is_active}")
+    else:
+        print(f"🔍 V3 DEBUG: User has no subscription, using defaults")
     
     print(f"🔍 DEBUG: Calling story generation implementation...")
     
-    # Call the implementation function with mock user
+    # Call the implementation function with authenticated user
     return await generate_story_with_photos_impl(
-        current_user=mock_user,
+        current_user=current_user,
         db=db,
         sunshine_id=sunshine_id,
         fear_or_challenge=fear_or_challenge,
